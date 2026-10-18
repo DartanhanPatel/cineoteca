@@ -1,0 +1,203 @@
+/* Cores do tema escuro — mude aqui para trocar o visual inteiro. */
+:root {
+  --fundo: #0f1117;
+  --superficie: #1b1e27;
+  --borda: #2a2e3a;
+  --texto: #f2f3f5;
+  --texto-suave: #9aa0ac;
+  --destaque: #01b4e4; /* azul da TMDB */
+  --raio: 10px;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--fundo);
+  color: var(--texto);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  line-height: 1.4;
+}
+
+/* ---------- Cabeçalho ---------- */
+.cabecalho {
+  padding: 32px 16px 8px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+.cabecalho h1 {
+  margin: 0;
+  font-size: clamp(1.6rem, 4vw, 2.4rem);
+}
+.cabecalho p {
+  margin: 4px 0 0;
+  color: var(--texto-suave);
+}
+
+/* ---------- Barra de streamings ---------- */
+.barra {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  max-width: 1400px;
+  margin: 0 auto;
+  background: var(--fundo);
+}
+.provedores {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding: 4px 2px 8px;
+  flex: 1;
+  scrollbar-width: thin;
+}
+.provedor {
+  flex: 0 0 auto;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--superficie);
+  cursor: pointer;
+  filter: grayscale(1);
+  opacity: 0.5;
+  transition: opacity 0.15s, filter 0.15s, border-color 0.15s, transform 0.15s;
+}
+.provedor:hover {
+  opacity: 0.85;
+  transform: scale(1.06);
+}
+.provedor[aria-pressed="true"] {
+  filter: none;
+  opacity: 1;
+  border-color: var(--destaque);
+}
+.provedor img {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.limpar {
+  flex: 0 0 auto;
+  padding: 8px 14px;
+  border: 1px solid var(--borda);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--texto);
+  cursor: pointer;
+}
+.limpar:hover {
+  border-color: var(--destaque);
+}
+
+/* ---------- Grade de filmes ---------- */
+.conteudo {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 8px 16px 32px;
+}
+.grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 20px 16px;
+}
+.card {
+  min-width: 0;
+}
+.poster {
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  object-fit: cover;
+  border-radius: var(--raio);
+  background: var(--superficie);
+  display: block;
+}
+.sem-poster {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  text-align: center;
+  color: var(--texto-suave);
+  border: 1px solid var(--borda);
+}
+.titulo {
+  margin: 8px 0 2px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.info {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--texto-suave);
+}
+
+/* Card "piscando" enquanto carrega (usado na Tarefa 5). */
+.skeleton {
+  aspect-ratio: 2 / 3;
+  border-radius: var(--raio);
+  background: var(--superficie);
+  animation: pulsar 1.2s ease-in-out infinite;
+}
+@keyframes pulsar {
+  50% {
+    opacity: 0.4;
+  }
+}
+
+/* ---------- Mensagens e botão ---------- */
+.mensagem {
+  padding: 48px 16px;
+  text-align: center;
+  color: var(--texto-suave);
+}
+.mensagem button,
+.carregar-mais {
+  margin-top: 12px;
+  padding: 10px 22px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--destaque);
+  color: #00121a;
+  font-weight: 600;
+  cursor: pointer;
+}
+.carregar-mais {
+  display: block;
+  margin: 32px auto 0;
+}
+.carregar-mais[hidden] {
+  display: none;
+}
+.carregar-mais:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+/* ---------- Rodapé ---------- */
+.rodape {
+  padding: 24px 16px 40px;
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--texto-suave);
+  border-top: 1px solid var(--borda);
+}
+.rodape p {
+  margin: 4px 0;
+}
+.logo-tmdb {
+  height: 14px;
+  margin-bottom: 8px;
+}
