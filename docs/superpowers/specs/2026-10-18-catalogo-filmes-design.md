@@ -1,7 +1,7 @@
 # Catálogo de Filmes nos Streamings — Design
 
 **Data:** 2026-10-18
-**Status:** aguardando revisão
+**Status:** aprovado
 
 ## 1. Objetivo
 
