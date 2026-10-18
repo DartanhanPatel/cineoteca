@@ -1,5 +1,4 @@
 // app.js — o "maestro": guarda o estado e liga cliques → api → ui.
-import { TMDB_TOKEN } from "./config.js";
 import { definirToken, buscarProvedores, buscarFilmes, idsParaBusca } from "./api.js";
 import {
   renderizarProvedores,
@@ -82,7 +81,19 @@ function aoCarregarMais() {
   carregarFilmes({ acrescentar: true });
 }
 
+// Lê o token do js/config.js. Se o arquivo não existir (quem acabou de
+// clonar o projeto), devolve "" em vez de quebrar a página inteira.
+async function lerToken() {
+  try {
+    const config = await import("./config.js");
+    return config.TMDB_TOKEN ?? "";
+  } catch {
+    return "";
+  }
+}
+
 async function iniciar() {
+  const TMDB_TOKEN = await lerToken();
   // Sem token configurado, nem tenta chamar a TMDB.
   if (!TMDB_TOKEN || TMDB_TOKEN.trim() === TOKEN_MODELO) {
     mostrarErro({ tipo: "auth" });
