@@ -41,3 +41,60 @@ export function idsParaBusca(selecionados, provedores) {
   if (selecionados.size > 0) return [...selecionados];
   return provedores.map((p) => p.provider_id);
 }
+
+// ---------------------------------------------------------------
+// Chamadas de verdade à TMDB
+// ---------------------------------------------------------------
+
+// A TMDB não deixa navegar além da página 500.
+const LIMITE_PAGINAS = 500;
+
+// O token é entregue pelo app.js (este arquivo não lê o config.js,
+// assim os testes rodam sem precisar de token).
+let token = "";
+
+// Aceita o token mesmo se ele vier com espaços ou já com "Bearer " na frente.
+export function definirToken(novoToken) {
+  token = String(novoToken ?? "").trim().replace(/^Bearer\s+/i, "");
+}
+
+// Erro com um "tipo", para a tela saber qual mensagem mostrar:
+// "auth" = token inválido, "rede" = sem internet, "api" = outro problema na TMDB.
+export class ErroApi extends Error {
+  constructor(tipo, mensagem) {
+    super(mensagem);
+    this.name = "ErroApi";
+    this.tipo = tipo;
+  }
+}
+
+// Faz a requisição e transforma qualquer falha em um ErroApi.
+async function requisitar(url) {
+  let resposta;
+  try {
+    resposta = await fetch(url, {
+      headers: { Authorization: `Bearer ${token}`, accept: "application/json" },
+    });
+  } catch {
+    throw new ErroApi("rede", "Falha de conexão com a TMDB.");
+  }
+  if (resposta.status === 401) throw new ErroApi("auth", "Token inválido ou ausente.");
+  if (!resposta.ok) throw new ErroApi("api", `A TMDB respondeu com status ${resposta.status}.`);
+  return resposta.json();
+}
+
+// Lista de streamings do Brasil, já na ordem de exibição.
+export async function buscarProvedores() {
+  const json = await requisitar(montarUrlProvedores());
+  return ordenarProvedores(json.results ?? []);
+}
+
+// Uma página de filmes dos streamings indicados.
+export async function buscarFilmes(idsProvedores, pagina) {
+  const json = await requisitar(montarUrlFilmes(idsProvedores, pagina));
+  return {
+    filmes: json.results ?? [],
+    pagina: json.page,
+    totalPaginas: Math.min(json.total_pages ?? 0, LIMITE_PAGINAS),
+  };
+}
