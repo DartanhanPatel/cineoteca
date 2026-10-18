@@ -87,9 +87,55 @@ export function renderizarFilmes(filmes, { acrescentar }) {
 }
 
 // Mostra, esconde ou desativa o botão "Carregar mais".
-export function atualizarBotaoMais({ visivel, carregando }) {
+// Com erro: true, o botão vira "Tentar de novo" (a grade continua na tela).
+export function atualizarBotaoMais({ visivel, carregando, erro = false }) {
   const botao = $("#carregar-mais");
   botao.hidden = !visivel;
   botao.disabled = carregando;
-  botao.textContent = carregando ? "Carregando..." : "Carregar mais";
+  if (carregando) botao.textContent = "Carregando...";
+  else botao.textContent = erro ? "Tentar de novo" : "Carregar mais";
+}
+
+// ---------------------------------------------------------------
+// Estados da tela: carregando, vazio e erro
+// ---------------------------------------------------------------
+
+// Mostra uma mensagem no lugar da grade (e esconde o "Carregar mais").
+function mostrarMensagem(...conteudo) {
+  $("#grade").replaceChildren();
+  const mensagem = $("#mensagem");
+  mensagem.replaceChildren(...conteudo);
+  mensagem.hidden = false;
+  $("#carregar-mais").hidden = true;
+}
+
+// 12 cards cinza "piscando" enquanto a primeira página chega.
+export function mostrarCarregando() {
+  $("#mensagem").hidden = true;
+  $("#grade").replaceChildren(
+    ...Array.from({ length: 12 }, () => {
+      const esqueleto = document.createElement("div");
+      esqueleto.className = "skeleton";
+      return esqueleto;
+    })
+  );
+}
+
+export function mostrarVazio() {
+  mostrarMensagem("Nenhum filme encontrado para esses streamings.");
+}
+
+// Erro de token: só a mensagem (tentar de novo não resolve).
+// Outros erros: mensagem + botão "Tentar de novo".
+export function mostrarErro(erro, aoTentarDeNovo) {
+  if (erro.tipo === "auth") {
+    mostrarMensagem("Token inválido ou ausente. Configure seu token em js/config.js (veja o README).");
+    return;
+  }
+  const texto = document.createElement("p");
+  texto.textContent = "Não foi possível carregar os filmes. Verifique sua conexão.";
+  const botao = document.createElement("button");
+  botao.textContent = "Tentar de novo";
+  botao.onclick = aoTentarDeNovo;
+  mostrarMensagem(texto, botao);
 }
