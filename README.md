@@ -140,11 +140,11 @@ npm test
 - [x] "← Voltar", a tecla Esc e o botão voltar do navegador fecham a página do filme no mesmo ponto da lista.
 
 ### Endereço e F5
-- [ ] Na aba "Quero assistir", apertar F5 reabre na mesma aba (também com a página de um filme aberta por cima).
+- [x] Na aba "Quero assistir", apertar F5 reabre na mesma aba (também com a página de um filme aberta por cima).
 
 ### Celular e erros
 - [x] No DevTools, no modo celular (Ctrl+Shift+M, largura 375px), o layout fica bom.
-- [ ] No celular (DevTools, Ctrl+Shift+M): toque rápido no pôster abre o filme; segurar o dedo mostra os 4 botões grandes; tocar fora fecha; rolar a tela não abre nada.
+- [x] No celular (DevTools, Ctrl+Shift+M): toque rápido no pôster abre o filme; segurar o dedo mostra os 4 botões grandes; tocar fora fecha; rolar a tela não abre nada.
 - [x] Com um token errado em `js/config.js`, aparece a mensagem de token inválido.
 - [x] No DevTools (F12) → Network → **Offline**, clicar num logo mostra o erro e "Tentar de novo". Voltar a ficar online e clicar em "Tentar de novo" carrega os filmes.
 
