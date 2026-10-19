@@ -11,8 +11,18 @@ const CHAVE = "catalogo-filmes:assistidos";
 // Quantos gêneros favoritos o carrossel usa.
 const MAX_GENEROS = 3;
 
-// Pontos que cada avaliação dá aos gêneros do filme.
-const PONTOS = { gostei: 1, nao: -1 };
+// Pontos que cada marcação dá aos gêneros do filme, para as recomendações.
+const PONTOS_GOSTEI = 2; // ✓ (gostei e já assisti)
+const PONTOS_SO_ASSISTI = 1; // "Já assisti" sem ✓ nem ✗: o gênero interessa
+const PONTOS_NAO_GOSTEI = -2; // ✗
+// "Quero assistir" não soma nem tira: a pessoa ainda não viu o filme.
+
+function pontosDe(filme) {
+  if (filme.avaliacao === "gostei") return PONTOS_GOSTEI;
+  if (filme.avaliacao === "nao") return PONTOS_NAO_GOSTEI;
+  if (filme.status === "assisti") return PONTOS_SO_ASSISTI;
+  return 0;
+}
 
 // Só o necessário para desenhar o card nas abas "Quero assistir" e
 // "Já assisti" sem precisar perguntar de novo à TMDB.
@@ -62,6 +72,7 @@ export function criarAssistidos(armazenamento = globalThis.localStorage, relogio
 
   const avaliacao = (idFilme) => achar(idFilme)?.avaliacao ?? null;
   const status = (idFilme) => achar(idFilme)?.status ?? null;
+  const marcado = (idFilme) => avaliacao(idFilme) !== null || status(idFilme) !== null;
 
   return {
     avaliacao,
@@ -103,8 +114,17 @@ export function criarAssistidos(armazenamento = globalThis.localStorage, relogio
       };
     },
 
-    // Não sugerir no carrossel o que a pessoa já avaliou ou já viu.
-    foraDoCarrossel: (idFilme) => avaliacao(idFilme) !== null || status(idFilme) === "assisti",
+    // Tem alguma marcação? (✓, ✗, Quero assistir ou Já assisti)
+    marcado,
+
+    // O carrossel só sugere filmes que a pessoa ainda não marcou.
+    foraDoCarrossel: marcado,
+
+    // Foto das marcações de um filme, para o "Desfazer" poder voltar atrás.
+    estado: (idFilme) => ({ avaliacao: avaliacao(idFilme), status: status(idFilme) }),
+    restaurar(filme, estadoAnterior) {
+      alterar(filme, () => estadoAnterior);
+    },
 
     // Marcações da versão anterior não guardavam título e pôster.
     semDados: () => lista.filter((f) => !f.filme && f.avaliacao !== "nao").map((f) => f.id),
@@ -133,14 +153,14 @@ function ler(armazenamento) {
   }
 }
 
-// Soma +1 por "gostei" e −1 por "não gostei" em cada gênero e devolve os
-// que ficaram com mais pontos (só os positivos). Empate: vence o que
-// apareceu primeiro.
+// Soma os pontos de cada filme marcado (✓ +2, só "Já assisti" +1, ✗ −2)
+// nos gêneros dele e devolve os gêneros com mais pontos (só os positivos).
+// Empate: vence o que apareceu primeiro.
 export function generosFavoritos(lista, max = MAX_GENEROS) {
   const pontos = new Map();
   for (const filme of lista) {
     for (const genero of filme.generos ?? []) {
-      pontos.set(genero, (pontos.get(genero) ?? 0) + (PONTOS[filme.avaliacao] ?? 0));
+      pontos.set(genero, (pontos.get(genero) ?? 0) + pontosDe(filme));
     }
   }
   return [...pontos.entries()]
@@ -148,6 +168,12 @@ export function generosFavoritos(lista, max = MAX_GENEROS) {
     .sort((a, b) => b[1] - a[1])
     .slice(0, max)
     .map(([genero]) => genero);
+}
+
+// Tira da lista os filmes que já têm alguma marcação: no Catálogo eles
+// saem e ficam só nas abas "Quero assistir" e "Já assisti".
+export function semMarcados(filmes, estaMarcado) {
+  return filmes.filter((filme) => !estaMarcado(filme.id));
 }
 
 // Tira da lista os filmes marcados com ✗: eles não aparecem mais no site.

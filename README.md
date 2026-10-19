@@ -1,4 +1,4 @@
-# Catálogo de Streaming
+# Cineoteca
 
 Um site que mostra os filmes disponíveis agora nos serviços de streaming no Brasil, com visual de sala de cinema: as cores do filme em destaque iluminam a página.
 
@@ -6,11 +6,12 @@ Um site que mostra os filmes disponíveis agora nos serviços de streaming no Br
 
 - **Filtrar por streaming:** clique nos logos (Netflix, Prime Video...) para ver só os filmes deles.
 - **Buscar pelo título:** digite na caixa de busca. Cada resultado mostra os logos de onde assistir, ou "Fora do streaming".
-- **Ver recomendações:** o destaque no topo é um carrossel com 4 filmes acima de 7,5, que troca a cada 5 segundos. Ele aprende com o que você marca no ✓ e no ✗.
+- **Ver recomendações:** o destaque no topo é um carrossel com 4 filmes acima de 7,5, que troca a cada 5 segundos. Ele aprende com o que você marca: cada filme dá pontos aos gêneros dele (✓ gostei +2, só "Já assisti" +1, ✗ não gostei −2), e o carrossel usa os 3 gêneros com mais pontos.
 - **Avaliar filmes:** passe o mouse num pôster.
   - **✓ Gostei:** fica marcado no pôster e reforça os gêneros do filme nas recomendações.
   - **✗ Não gostei:** o filme some do site (dá para desfazer por 5 segundos).
   - **＋ Quero assistir** e **👁 Já assisti:** guardam o filme nas abas do topo.
+  - Filme marcado sai do Catálogo e fica só na aba dele (dá para desfazer por 5 segundos). Na busca, ele continua aparecendo, com a marca.
 - **Abrir a página do filme:** clique no pôster ou no destaque. Ela tem trailer, sinopse, elenco, classificação indicativa e onde assistir.
 
 As marcações ficam guardadas no seu navegador. Elas continuam lá quando você fecha o site, mas não passam para outro computador.
@@ -88,6 +89,7 @@ npm test
 - [ ] Os botões do pôster só aparecem com o mouse em cima; depois de marcado, só o ✓ fica visível.
 - [ ] Dar ✗ num filme faz ele sumir; "Desfazer" traz de volta. Recarregando a página, ele continua oculto.
 - [ ] "Quero assistir" e "Já assisti" aparecem nas abas do topo, com o número certo.
+- [ ] Marcar um filme no Catálogo faz ele sair de lá na hora; "Desfazer" devolve como estava.
 - [ ] Clicar num pôster abre a página do filme com o trailer tocando sem som; "Ativar som" liga o áudio.
 - [ ] "← Voltar", a tecla Esc e o botão voltar do navegador fecham a página do filme no mesmo ponto da lista.
 

@@ -4,7 +4,8 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#000000" />
-    <title>Catálogo de Streaming</title>
+    <title>Cineoteca</title>
+    <link rel="icon" type="image/svg+xml" href="img/cineoteca.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -18,7 +19,22 @@
     <div id="ambiente" class="ambiente" aria-hidden="true"></div>
 
     <header class="cabecalho">
-      <h1 class="marca">Catálogo de Streaming</h1>
+      <h1 class="marca">
+        <!-- Clicar no logo volta para a tela principal (Catálogo, no topo). -->
+        <a class="marca-link" href="./" aria-label="Cineoteca, voltar para a tela principal">
+          <img class="marca-icone" src="img/cineoteca.svg" alt="" />
+          <!-- O nome segue uma leve curva de "sorriso", com as letras das
+               pontas maiores, como um letreiro de cinema. -->
+          <svg class="marca-nome" viewBox="0 0 196 48" aria-hidden="true">
+            <path id="curva-marca" d="M 2 40 Q 98 50 194 40" fill="none" />
+            <text>
+              <textPath href="#curva-marca" textLength="192" lengthAdjust="spacingAndGlyphs">
+                <tspan font-size="46">C</tspan><tspan font-size="42">I</tspan><tspan font-size="39">N</tspan><tspan font-size="37">E</tspan><tspan font-size="36">O</tspan><tspan font-size="37">T</tspan><tspan font-size="39">E</tspan><tspan font-size="42">C</tspan><tspan font-size="46">A</tspan>
+              </textPath>
+            </text>
+          </svg>
+        </a>
+      </h1>
 
       <div class="abas" role="tablist" aria-label="O que mostrar">
         <button class="aba" role="tab" data-aba="catalogo" aria-selected="true">Catálogo</button>

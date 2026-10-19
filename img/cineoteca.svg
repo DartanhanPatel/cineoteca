@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 52" role="img" aria-label="Cineoteca">
+  <!-- Um "C" feito de uma fita de cinema curvada. A fita escurece no meio,
+       como se estivesse virando para trás; as pontas ficam claras, viradas
+       para a frente. Os triângulos escuros são os vincos das pontas. -->
+  <defs>
+    <linearGradient id="fita" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f0434a" />
+      <stop offset="0.28" stop-color="#b0151c" />
+      <stop offset="0.5" stop-color="#7f0c12" />
+      <stop offset="0.72" stop-color="#b0151c" />
+      <stop offset="1" stop-color="#f0434a" />
+    </linearGradient>
+  </defs>
+  <path
+    d="M44 6.5 A23 23 0 1 0 44 45.5 L37.5 37 A13 13 0 1 1 37.5 15 Z"
+    fill="url(#fita)"
+  />
+  <!-- vincos: dobras nas duas pontas da fita -->
+  <path d="M44 6.5 L37.5 15 L33 11.2 Z" fill="#4d0609" opacity="0.55" />
+  <path d="M44 45.5 L37.5 37 L33 40.8 Z" fill="#4d0609" opacity="0.55" />
+</svg>

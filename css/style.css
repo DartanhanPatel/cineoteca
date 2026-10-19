@@ -1,5 +1,5 @@
 /* ==============================================================
-   Catálogo de Streaming: "Sala escura"
+   Cineoteca: "Sala escura"
    A página é uma sala de cinema: o filme em destaque é a única luz,
    e as cores dele se espalham pelo fundo. O resto fica quieto.
    Mude as cores e fontes aqui para trocar o visual inteiro.
@@ -15,6 +15,7 @@
   --sinal: #ff4d57; /* ✗ "Não gostei" */
   --quero: #b9a7ff; /* "Quero assistir" */
   --assisti: #63e2a4; /* "Já assisti" */
+  --vermelho-cinema: #e1252c; /* logo */
 
   --fonte-titulo: "Big Shoulders Display", "Arial Narrow", sans-serif;
   --fonte-texto: "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -105,14 +106,36 @@ button {
   -webkit-backdrop-filter: blur(18px) saturate(1.4);
 }
 .marca {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin: 0;
+  line-height: 1;
+}
+.marca-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 6px;
+  text-decoration: none;
+}
+.marca-icone {
+  width: 31px;
+  height: auto;
+  display: block;
+}
+.marca-nome {
+  width: 148px;
+  height: auto;
+  display: block;
+  overflow: visible;
   font-family: var(--fonte-titulo);
   font-weight: 800;
-  font-size: 1.75rem;
-  line-height: 1;
-  letter-spacing: 0.01em;
-  white-space: nowrap;
+  fill: var(--vermelho-cinema);
+  /* um leve brilho, como letreiro aceso */
+  filter: drop-shadow(0 0 10px rgb(225 37 44 / 0.35));
 }
+
 
 .abas {
   display: flex;
@@ -1070,8 +1093,18 @@ button {
   .busca {
     width: clamp(140px, 42vw, 220px);
   }
-  .marca {
-    font-size: 1.45rem;
+  .marca-nome {
+    width: 124px;
+  }
+  .marca-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 6px;
+  text-decoration: none;
+}
+.marca-icone {
+    width: 27px;
   }
   .destaque {
     height: 78vh;

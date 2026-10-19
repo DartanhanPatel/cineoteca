@@ -11,7 +11,7 @@ import {
   idsParaBusca,
 } from "./api.js";
 import { renderizarDetalhe, mostrarDetalheCarregando, mostrarErroDetalhe, fecharDetalhe } from "./detalhe.js";
-import { criarAssistidos, generosFavoritos, semNaoGostei } from "./assistidos.js";
+import { criarAssistidos, generosFavoritos, semNaoGostei, semMarcados } from "./assistidos.js";
 import {
   renderizarProvedores,
   renderizarFilmes,
@@ -23,6 +23,7 @@ import {
   ligarBusca,
   definirTextoBusca,
   ligarAbas,
+  ligarMarca,
   marcarAba,
   atualizarContadores,
   lerRota,
@@ -81,7 +82,7 @@ let ultimoCarrossel = 0;
 let idsNoCarrossel = new Set();
 
 // Monta o carrossel: filmes acima de 7,5 dos gêneros que a pessoa mais
-// gosta (✓ soma, ✗ subtrai). Filmes avaliados ou já vistos não entram. Sem
+// gosta (✓ +2, só "Já assisti" +1, ✗ −2). Filmes já marcados não entram. Sem
 // gêneros favoritos (ou se eles não renderem nada), mostra os mais bem
 // avaliados de qualquer gênero.
 async function carregarCarrossel() {
@@ -135,8 +136,11 @@ async function carregarFilmes({ acrescentar }) {
 
     estado.pagina = resposta.pagina;
     estado.totalPaginas = resposta.totalPaginas;
-    // Filmes com ✗ não aparecem mais.
-    const filmes = semNaoGostei(resposta.filmes, assistidos.avaliacao);
+    // No Catálogo só entram filmes ainda não marcados (os marcados ficam nas
+    // abas). Na busca, todos aparecem, menos os com ✗.
+    const filmes = emBusca
+      ? semNaoGostei(resposta.filmes, assistidos.avaliacao)
+      : semMarcados(resposta.filmes, assistidos.marcado);
     if (filmes.length === 0 && !acrescentar) {
       mostrarVazio(emBusca ? `Nenhum filme encontrado para "${estado.termo}".` : undefined);
     } else {
@@ -191,20 +195,31 @@ function aoCarregarMais() {
   carregarFilmes({ acrescentar: true });
 }
 
-// ✓ ou ✗ num card. Se o filme com ✗ estiver no carrossel, o carrossel é
-// refeito sem ele (os outros casos só mudam o carrossel na próxima vez).
+// Depois de qualquer marcação: atualiza os números das abas e, se o
+// filme marcado estava no carrossel, refaz o carrossel sem ele.
+function depoisDeMarcar(filme) {
+  atualizarContadores(assistidos.contagem());
+  if (assistidos.marcado(filme.id) && idsNoCarrossel.has(filme.id)) carregarCarrossel();
+}
+
+// ✓ ou ✗ num card ou na página do filme.
 function aoAvaliar(filme, tipo) {
   const avaliacao = assistidos.avaliar(filme, tipo);
-  atualizarContadores(assistidos.contagem());
-  if (avaliacao === "nao" && idsNoCarrossel.has(filme.id)) carregarCarrossel();
+  depoisDeMarcar(filme);
   return avaliacao;
 }
 
-// "Quero assistir" ou "Já assisti" num card.
+// "Quero assistir" ou "Já assisti" num card ou na página do filme.
 function aoMarcarStatus(filme, tipo) {
   const status = assistidos.marcarStatus(filme, tipo);
-  atualizarContadores(assistidos.contagem());
+  depoisDeMarcar(filme);
   return status;
+}
+
+// "Desfazer": volta as marcações do filme para como estavam.
+function aoRestaurar(filme, estadoAnterior) {
+  assistidos.restaurar(filme, estadoAnterior);
+  depoisDeMarcar(filme);
 }
 
 const LISTA_VAZIA = {
@@ -258,6 +273,14 @@ function aoTrocarAba(aba) {
   } else {
     abrirLista(aba);
   }
+}
+
+// Logo: volta para a tela principal (aba Catálogo, sem busca, no topo).
+// Os streamings marcados no filtro continuam marcados.
+function irParaInicio() {
+  aoTrocarAba("catalogo");
+  const suave = !matchMedia("(prefers-reduced-motion: reduce)").matches;
+  window.scrollTo({ top: 0, behavior: suave ? "smooth" : "auto" });
 }
 
 // Chamado a cada letra digitada; só busca depois da pausa.
@@ -358,6 +381,10 @@ async function iniciar() {
     statusDe: (id) => assistidos.status(id),
     aoAvaliar,
     aoMarcarStatus,
+    estadoDe: (id) => assistidos.estado(id),
+    restaurar: aoRestaurar,
+    // Marcados saem da grade só no Catálogo (não na busca nem nas listas).
+    saiDaGrade: () => estado.aba === "catalogo" && estado.termo === "",
   });
   atualizarContadores(assistidos.contagem());
 
@@ -366,6 +393,7 @@ async function iniciar() {
     estado.provedores = await buscarProvedores();
     ligarBusca(aoDigitar);
     ligarAbas(aoTrocarAba);
+    ligarMarca(irParaInicio);
     aplicarFiltro();
     window.addEventListener("hashchange", () => {
       navegouDentro = true;
