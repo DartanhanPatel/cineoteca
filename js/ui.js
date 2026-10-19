@@ -10,9 +10,7 @@ const URL_FUNDO = "https://image.tmdb.org/t/p/w1280";
 // Versão pequena da imagem de fundo: vira o brilho desfocado da "sala".
 const URL_AMBIENTE = "https://image.tmdb.org/t/p/w300";
 
-// Carrossel do destaque: quantos filmes, nota mínima (exclusiva) e intervalo.
-const MAX_CARROSSEL = 4;
-const NOTA_CARROSSEL = 7.5;
+// Carrossel do destaque: intervalo entre um filme e outro.
 const INTERVALO_CARROSSEL = 5000;
 // A partir de quantas letras o título do destaque fica menor.
 export const TITULO_LONGO = 18;
@@ -92,14 +90,6 @@ export function definirAmbiente(caminhoImagem, alvo = $("#ambiente")) {
     }, 1200);
   };
   alvo.append(luz);
-}
-
-// Escolhe os filmes do carrossel: nota acima de 7,5, com imagem de fundo
-// e que a pessoa ainda não assistiu. Mantém a ordem (os mais populares).
-export function escolherCarrossel(filmes, estaAssistido, max = MAX_CARROSSEL) {
-  return filmes
-    .filter((f) => f.vote_average > NOTA_CARROSSEL && f.backdrop_path && !estaAssistido(f.id))
-    .slice(0, max);
 }
 
 // Separa os logos que aparecem dos que viram "+N".
@@ -378,6 +368,7 @@ let avaliacoes = {
   estadoDe: () => ({ avaliacao: null, status: null }),
   restaurar: () => {},
   saiDaGrade: () => false, // filmes marcados saem da grade? (só no Catálogo)
+  aoSairDaGrade: () => {}, // um card saiu da grade (o app repõe outro filme)
 };
 
 export function configurarAvaliacoes(config) {
@@ -412,13 +403,14 @@ function atualizarMarcas(idFilme) {
 // fica escondido (não é apagado), então desfazer devolve o filme para o
 // mesmo lugar e com as marcações de antes (`estadoAnterior`).
 function retirarDaGrade(filme, estadoAnterior, texto) {
-  const cards = document.querySelectorAll(`.card[data-filme-id="${filme.id}"]`);
+  const cards = [...document.querySelectorAll(`.card[data-filme-id="${filme.id}"]`)].filter((c) => !c.hidden);
   for (const card of cards) {
     card.classList.add("saindo");
     setTimeout(() => {
       if (card.classList.contains("saindo")) card.hidden = true;
     }, 250);
   }
+  if (cards.length > 0) avaliacoes.aoSairDaGrade(filme);
   mostrarAviso(texto, "Desfazer", () => {
     avaliacoes.restaurar(filme, estadoAnterior);
     for (const card of cards) {
@@ -585,6 +577,12 @@ function criarCard(filme, comOndeAssistir) {
     card.append(faixa);
   }
   return card;
+}
+
+// Tira da grade o card de um filme (usado quando o "Desfazer" devolve a
+// vaga de um filme que tinha entrado como substituto).
+export function removerCard(idFilme) {
+  for (const card of document.querySelectorAll(`#grade .card[data-filme-id="${idFilme}"]`)) card.remove();
 }
 
 // Desenha os filmes na grade. Com acrescentar: true, mantém os que já estão lá.

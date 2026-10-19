@@ -169,14 +169,3 @@ export function generosFavoritos(lista, max = MAX_GENEROS) {
     .slice(0, max)
     .map(([genero]) => genero);
 }
-
-// Tira da lista os filmes que já têm alguma marcação: no Catálogo eles
-// saem e ficam só nas abas "Quero assistir" e "Já assisti".
-export function semMarcados(filmes, estaMarcado) {
-  return filmes.filter((filme) => !estaMarcado(filme.id));
-}
-
-// Tira da lista os filmes marcados com ✗: eles não aparecem mais no site.
-export function semNaoGostei(filmes, avaliacaoDe) {
-  return filmes.filter((filme) => avaliacaoDe(filme.id) !== "nao");
-}

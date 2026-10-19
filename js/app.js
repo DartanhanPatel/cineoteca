@@ -2,21 +2,23 @@
 import {
   definirToken,
   buscarProvedores,
-  buscarFilmes,
-  buscarPorTitulo,
+  paginaDoCatalogo,
+  paginaDaBusca,
+  INICIO_CATALOGO,
   buscarOndeAssistir,
-  buscarRecomendados,
+  buscarParaCarrossel,
   buscarDetalhesFilme,
   buscarDetalheCompleto,
   idsParaBusca,
 } from "./api.js";
 import { renderizarDetalhe, mostrarDetalheCarregando, mostrarErroDetalhe, fecharDetalhe } from "./detalhe.js";
-import { criarAssistidos, generosFavoritos, semNaoGostei, semMarcados } from "./assistidos.js";
+import { criarAssistidos, generosFavoritos } from "./assistidos.js";
+import { criarFila } from "./fila.js";
 import {
   renderizarProvedores,
   renderizarFilmes,
+  removerCard,
   renderizarCarrossel,
-  escolherCarrossel,
   configurarAvaliacoes,
   preencherOndeAssistir,
   preencherOndeAssistirDestaque,
@@ -49,8 +51,6 @@ const estado = {
   selecionados: new Set(), // IDs dos streamings marcados
   aba: "catalogo", // "catalogo", "quero" ou "assisti"
   termo: "", // texto buscado; vazio = catálogo normal
-  pagina: 1,
-  totalPaginas: 1,
   carregando: false, // evita cliques duplos no "Carregar mais"
 };
 
@@ -81,8 +81,9 @@ let ultimoCarrossel = 0;
 // IDs dos filmes que estão no carrossel agora.
 let idsNoCarrossel = new Set();
 
-// Monta o carrossel: filmes acima de 7,5 dos gêneros que a pessoa mais
-// gosta (✓ +2, só "Já assisti" +1, ✗ −2). Filmes já marcados não entram. Sem
+// Monta o carrossel: 4 filmes dos gêneros que a pessoa mais gosta
+// (✓ +2, só "Já assisti" +1, ✗ −2), acima de 7,5 (ou com notas menores,
+// se os melhores já foram marcados). Filmes já marcados não entram. Sem
 // gêneros favoritos (ou se eles não renderem nada), mostra os mais bem
 // avaliados de qualquer gênero.
 async function carregarCarrossel() {
@@ -93,10 +94,10 @@ async function carregarCarrossel() {
 
   try {
     let rotulo = "Recomendados para você";
-    let filmes = generos.length > 0 ? escolherCarrossel(await buscarRecomendados(ids, generos), foraDoCarrossel) : [];
+    let filmes = generos.length > 0 ? await buscarParaCarrossel(ids, generos, foraDoCarrossel) : [];
     if (filmes.length === 0) {
       rotulo = "Mais bem avaliados";
-      filmes = escolherCarrossel(await buscarRecomendados(ids, []), foraDoCarrossel);
+      filmes = await buscarParaCarrossel(ids, [], foraDoCarrossel);
     }
     if (meuCarrossel !== ultimoCarrossel) return; // chegou atrasado: descarta
 
@@ -121,6 +122,24 @@ function esconderCarrossel() {
   renderizarCarrossel([]);
 }
 
+// Quantos filmes cada carga põe na grade.
+const FILMES_POR_CARGA = 20;
+
+// Fila de reserva da grade atual (próximos filmes, na ordem certa).
+// Uma nova lista (outro filtro, busca ou aba) ganha uma fila nova.
+let fila = null;
+// Filme que saiu do Catálogo → filme que entrou no lugar dele.
+const substitutos = new Map();
+
+function trocarFila(novaFila) {
+  fila?.cancelar();
+  fila = novaFila;
+  substitutos.clear();
+}
+
+// A grade é o Catálogo (e não a busca nem uma aba de lista)?
+const noCatalogo = () => estado.aba === "catalogo" && estado.termo === "";
+
 async function carregarFilmes({ acrescentar }) {
   const minhaBusca = ++ultimaBusca;
   const emBusca = estado.termo !== "";
@@ -128,25 +147,38 @@ async function carregarFilmes({ acrescentar }) {
   if (acrescentar) atualizarBotaoMais({ visivel: true, carregando: true });
   else mostrarCarregando();
 
+  if (!acrescentar) {
+    // Lista nova. Que páginas pedir: a busca por título (por relevância) ou
+    // o catálogo dos streamings (das notas mais altas para as mais baixas).
+    // No Catálogo só entram filmes ainda não marcados (os marcados ficam
+    // nas abas). Na busca, todos aparecem, menos os com ✗.
+    trocarFila(
+      emBusca
+        ? criarFila({
+            buscarPagina: paginaDaBusca(estado.termo),
+            entra: (filme) => assistidos.avaliacao(filme.id) !== "nao",
+            inicio: 1,
+          })
+        : criarFila({
+            buscarPagina: paginaDoCatalogo(idsParaBusca(estado.selecionados, estado.provedores)),
+            entra: (filme) => !assistidos.marcado(filme.id),
+            inicio: INICIO_CATALOGO,
+          })
+    );
+  }
+
   try {
-    const resposta = emBusca
-      ? await buscarPorTitulo(estado.termo, estado.pagina)
-      : await buscarFilmes(idsParaBusca(estado.selecionados, estado.provedores), estado.pagina);
+    // A fila pula páginas que só têm filmes já marcados: a grade nunca fica
+    // vazia enquanto houver filmes novos para mostrar.
+    const filmes = await fila.puxar(FILMES_POR_CARGA);
     if (minhaBusca !== ultimaBusca) return; // chegou atrasada: descarta
 
-    estado.pagina = resposta.pagina;
-    estado.totalPaginas = resposta.totalPaginas;
-    // No Catálogo só entram filmes ainda não marcados (os marcados ficam nas
-    // abas). Na busca, todos aparecem, menos os com ✗.
-    const filmes = emBusca
-      ? semNaoGostei(resposta.filmes, assistidos.avaliacao)
-      : semMarcados(resposta.filmes, assistidos.marcado);
     if (filmes.length === 0 && !acrescentar) {
       mostrarVazio(emBusca ? `Nenhum filme encontrado para "${estado.termo}".` : undefined);
     } else {
       renderizarFilmes(filmes, { acrescentar, comOndeAssistir: emBusca });
     }
-    atualizarBotaoMais({ visivel: estado.pagina < estado.totalPaginas, carregando: false });
+    atualizarBotaoMais({ visivel: fila.temMais(), carregando: false });
 
     if (emBusca) {
       // Os pôsteres já estão na tela; os logos chegam um a um.
@@ -157,9 +189,8 @@ async function carregarFilmes({ acrescentar }) {
   } catch (erro) {
     if (minhaBusca !== ultimaBusca) return;
     if (acrescentar) {
-      // Falhou o "Carregar mais": mantém a grade, volta a página
-      // e o botão vira "Tentar de novo" (clicar nele repete a mesma página).
-      estado.pagina -= 1;
+      // Falhou o "Carregar mais": mantém a grade e o botão vira "Tentar de
+      // novo" (a página só avança quando a carga dá certo).
       atualizarBotaoMais({ visivel: erro.tipo !== "auth", carregando: false, erro: true });
       if (erro.tipo === "auth") mostrarErro(erro);
     } else {
@@ -172,7 +203,6 @@ async function carregarFilmes({ acrescentar }) {
 
 // Redesenha os logos (para atualizar quem está marcado) e busca do zero.
 function aplicarFiltro() {
-  estado.pagina = 1;
   renderizarProvedores(estado.provedores, estado.selecionados, aoClicarProvedor, aoLimpar);
   carregarCarrossel();
   carregarFilmes({ acrescentar: false });
@@ -191,7 +221,6 @@ function aoLimpar() {
 
 function aoCarregarMais() {
   if (estado.carregando) return;
-  estado.pagina += 1;
   carregarFilmes({ acrescentar: true });
 }
 
@@ -216,10 +245,36 @@ function aoMarcarStatus(filme, tipo) {
   return status;
 }
 
-// "Desfazer": volta as marcações do filme para como estavam.
+// "Desfazer": volta as marcações do filme para como estavam. Se outro
+// filme tinha entrado no lugar dele, esse substituto devolve a vaga (volta
+// para a frente da fila), e a grade continua com a mesma quantidade.
 function aoRestaurar(filme, estadoAnterior) {
   assistidos.restaurar(filme, estadoAnterior);
   depoisDeMarcar(filme);
+  const substituto = substitutos.get(filme.id);
+  if (substituto && fila) {
+    substitutos.delete(filme.id);
+    removerCard(substituto.id);
+    fila.devolver(substituto);
+  }
+}
+
+// Um filme saiu do Catálogo (foi marcado): entra o próximo da fila no
+// fim da grade, para a quantidade de filmes na tela não diminuir.
+async function aoSairDaGrade(filme) {
+  if (!noCatalogo() || !fila) return;
+  const minhaFila = fila;
+  try {
+    const [novo] = await minhaFila.puxar(1);
+    if (!novo || minhaFila !== fila) return; // acabaram os filmes ou a lista mudou
+    renderizarFilmes([novo], { acrescentar: true });
+    substitutos.set(filme.id, novo);
+  } catch {
+    // Sem internet: a grade só fica com um filme a menos.
+  }
+  if (fila === minhaFila && !estado.carregando) {
+    atualizarBotaoMais({ visivel: fila.temMais(), carregando: false });
+  }
 }
 
 const LISTA_VAZIA = {
@@ -231,6 +286,7 @@ const LISTA_VAZIA = {
 // navegador, com os logos de onde assistir.
 async function abrirLista(tipo) {
   const minhaBusca = ++ultimaBusca; // descarta respostas pendentes do catálogo
+  trocarFila(null);
   esconderCarrossel();
   mostrarFiltro(false);
   atualizarBotaoMais({ visivel: false, carregando: false });
@@ -303,7 +359,6 @@ function aoDigitar(texto) {
       // Entrando (ou continuando) na busca: some o destaque, apaga o filtro.
       esconderCarrossel();
       definirFiltroAtivo(false);
-      estado.pagina = 1;
       carregarFilmes({ acrescentar: false });
     } else {
       // Saindo da busca: volta o catálogo com os logos que estavam marcados.
@@ -384,7 +439,8 @@ async function iniciar() {
     estadoDe: (id) => assistidos.estado(id),
     restaurar: aoRestaurar,
     // Marcados saem da grade só no Catálogo (não na busca nem nas listas).
-    saiDaGrade: () => estado.aba === "catalogo" && estado.termo === "",
+    saiDaGrade: noCatalogo,
+    aoSairDaGrade,
   });
   atualizarContadores(assistidos.contagem());
 

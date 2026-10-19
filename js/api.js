@@ -15,36 +15,77 @@ export function montarUrlProvedores() {
   return url.toString();
 }
 
+// O Catálogo mostra primeiro os filmes de nota mais alta: todos os acima
+// de 7,5; só quando eles acabam, os de 7,0 a 7,5; e assim por diante.
+// Dentro de cada faixa, os mais populares primeiro. Só entra numa faixa
+// quem tem votos suficientes para a nota valer; os filmes com poucos
+// votos (lançamentos recentes, por exemplo) ficam para o fim.
+const VOTOS_CATALOGO = 100;
+export const FAIXAS_CATALOGO = [
+  { min: 7.5 },
+  { min: 7.0, max: 7.5 },
+  { min: 6.5, max: 7.0 },
+  { min: 6.0, max: 6.5 },
+  { min: 5.0, max: 6.0 },
+  { max: 5.0 },
+  { poucosVotos: true },
+];
+// Onde o Catálogo começa: primeira faixa, primeira página.
+export const INICIO_CATALOGO = { faixa: 0, pagina: 1 };
+
 // Endereço da busca de filmes. Os IDs são unidos com "|", que na TMDB
 // significa "OU": filmes que estão em qualquer um desses streamings.
-export function montarUrlFilmes(idsProvedores, pagina) {
+// Com `faixa`, só vêm os filmes daquela faixa de nota.
+export function montarUrlFilmes(idsProvedores, pagina, faixa = null) {
   const url = new URL(`${BASE_URL}/discover/movie`);
   url.searchParams.set("watch_region", REGIAO);
   url.searchParams.set("with_watch_providers", idsProvedores.join("|"));
   url.searchParams.set("language", IDIOMA);
   url.searchParams.set("sort_by", "popularity.desc");
   url.searchParams.set("page", String(pagina));
+  if (faixa?.poucosVotos) {
+    url.searchParams.set("vote_count.lte", String(VOTOS_CATALOGO - 1));
+  } else if (faixa) {
+    url.searchParams.set("vote_count.gte", String(VOTOS_CATALOGO));
+    // As faixas seguem a nota como ela aparece na tela, com 1 casa decimal:
+    // 7,46 aparece como "7,5", então conta como 7,5. O limite de cima não
+    // entra na faixa (o que aparece como 7,5 é da faixa "acima de 7,5").
+    if (faixa.min != null) url.searchParams.set("vote_average.gte", (faixa.min - 0.05).toFixed(2));
+    if (faixa.max != null) url.searchParams.set("vote_average.lte", (faixa.max - 0.051).toFixed(3));
+  }
   return url.toString();
 }
 
-// Critérios do carrossel de recomendados: nota acima de 7,5 e votos
-// suficientes para a nota valer (evita filme com 10 dado por 3 pessoas).
-const NOTA_MINIMA = 7.5;
+// Carrossel de recomendados: começa com filmes acima de 7,5. Quando eles
+// acabam (a pessoa já marcou todos), desce a nota aos poucos até 5,0.
+// Os votos mínimos evitam filme com nota 10 dada por 3 pessoas.
+const NOTAS_CARROSSEL = [7.5, 7.0, 6.5, 6.0, 5.5, 5.0];
 const VOTOS_MINIMOS = 200;
+const MAX_CARROSSEL = 4;
+// Quantas páginas olhar em cada nota antes de descer para a próxima.
+const PAGINAS_POR_NOTA = 3;
 
 // Endereço dos recomendados: filmes bem avaliados nos streamings indicados.
 // Com gêneros, eles são unidos com "|" ("OU"); sem gêneros, vale qualquer um.
-export function montarUrlRecomendados(idsProvedores, generos) {
+export function montarUrlRecomendados(idsProvedores, generos, notaMinima, pagina) {
   const url = new URL(`${BASE_URL}/discover/movie`);
   url.searchParams.set("watch_region", REGIAO);
   url.searchParams.set("with_watch_providers", idsProvedores.join("|"));
   if (generos.length > 0) url.searchParams.set("with_genres", generos.join("|"));
-  url.searchParams.set("vote_average.gte", String(NOTA_MINIMA));
+  url.searchParams.set("vote_average.gte", String(notaMinima));
   url.searchParams.set("vote_count.gte", String(VOTOS_MINIMOS));
   url.searchParams.set("language", IDIOMA);
   url.searchParams.set("sort_by", "popularity.desc");
-  url.searchParams.set("page", "1");
+  url.searchParams.set("page", String(pagina));
   return url.toString();
+}
+
+// Escolhe filmes para o carrossel: acima da nota, com imagem de fundo e
+// que a pessoa ainda não marcou. Mantém a ordem (os mais populares).
+export function escolherCarrossel(filmes, estaMarcado, notaMinima, max = MAX_CARROSSEL) {
+  return filmes
+    .filter((f) => f.vote_average > notaMinima && f.backdrop_path && !estaMarcado(f.id))
+    .slice(0, max);
 }
 
 // Endereço da busca por título. Esta rota da TMDB não filtra por streaming:
@@ -221,9 +262,35 @@ function normalizarPagina(json) {
   };
 }
 
-// Uma página de filmes dos streamings indicados.
-export async function buscarFilmes(idsProvedores, pagina) {
-  return normalizarPagina(await requisitar(montarUrlFilmes(idsProvedores, pagina)));
+// Uma página de filmes dos streamings indicados (de uma faixa de nota).
+export async function buscarFilmes(idsProvedores, pagina, faixa = null) {
+  return normalizarPagina(await requisitar(montarUrlFilmes(idsProvedores, pagina, faixa)));
+}
+
+// Para a grade, cada carga diz onde a próxima continua (o "cursor"), ou
+// null quando não há mais filmes.
+
+// Catálogo: o cursor é { faixa, pagina }. Termina as páginas de uma faixa
+// de nota antes de passar para a faixa de baixo.
+export function paginaDoCatalogo(idsProvedores) {
+  return async ({ faixa, pagina }) => {
+    const resposta = await buscarFilmes(idsProvedores, pagina, FAIXAS_CATALOGO[faixa]);
+    let proximo = null;
+    if (resposta.pagina < resposta.totalPaginas) proximo = { faixa, pagina: resposta.pagina + 1 };
+    else if (faixa + 1 < FAIXAS_CATALOGO.length) proximo = { faixa: faixa + 1, pagina: 1 };
+    return { filmes: resposta.filmes, proximo };
+  };
+}
+
+// Busca por título: o cursor é só o número da página.
+export function paginaDaBusca(texto) {
+  return async (pagina) => {
+    const resposta = await buscarPorTitulo(texto, pagina);
+    return {
+      filmes: resposta.filmes,
+      proximo: resposta.pagina < resposta.totalPaginas ? resposta.pagina + 1 : null,
+    };
+  };
 }
 
 // Uma página de filmes cujo título combina com o texto digitado.
@@ -236,10 +303,56 @@ export async function buscarOndeAssistir(idFilme) {
   return extrairProvedoresBR(await requisitar(montarUrlOndeAssistir(idFilme)));
 }
 
-// Filmes bem avaliados dos gêneros indicados (para o carrossel).
-export async function buscarRecomendados(idsProvedores, generos) {
-  const json = await requisitar(montarUrlRecomendados(idsProvedores, generos));
-  return json.results ?? [];
+// Os 4 filmes do carrossel. Tenta primeiro acima de 7,5; se não completar
+// 4 (porque a pessoa já marcou os outros), desce a nota: 7,0, 6,5... até
+// 5,0. Os de nota mais alta ficam primeiro. Pode devolver menos de 4.
+export async function buscarParaCarrossel(idsProvedores, generos, estaMarcado) {
+  const escolhidos = [];
+  const jaEscolhido = (id) => estaMarcado(id) || escolhidos.some((f) => f.id === id);
+
+  for (const nota of NOTAS_CARROSSEL) {
+    for (let pagina = 1; pagina <= PAGINAS_POR_NOTA; pagina++) {
+      const resposta = normalizarPagina(
+        await requisitar(montarUrlRecomendados(idsProvedores, generos, nota, pagina))
+      );
+      escolhidos.push(
+        ...escolherCarrossel(resposta.filmes, jaEscolhido, nota, MAX_CARROSSEL - escolhidos.length)
+      );
+      if (escolhidos.length >= MAX_CARROSSEL) return escolhidos;
+      if (pagina >= resposta.totalPaginas) break; // acabaram as páginas desta nota
+    }
+  }
+  return escolhidos;
+}
+
+// ---------------------------------------------------------------
+// Grade que nunca fica vazia
+// ---------------------------------------------------------------
+
+// Quantos filmes novos cada carga da grade tenta juntar, e o máximo de
+// páginas da TMDB que ela pode pedir de uma vez para isso.
+const MINIMO_POR_CARGA = 20;
+const MAX_PAGINAS_POR_CARGA = 10;
+
+// Pede páginas seguidas até juntar `minimo` filmes que passem no `filtrar`
+// (por exemplo, "ainda não marcado"). Assim, uma página só de filmes já
+// marcados é pulada em vez de deixar a tela vazia.
+// `buscarPagina(cursor)` devolve { filmes, proximo } (veja acima).
+// Devolve os filmes juntados e onde a próxima carga continua (ou null).
+export async function buscarAteEncher(
+  buscarPagina,
+  filtrar,
+  { inicio, minimo = MINIMO_POR_CARGA, maxPaginas = MAX_PAGINAS_POR_CARGA }
+) {
+  const filmes = [];
+  let cursor = inicio;
+  for (let pedidas = 0; pedidas < maxPaginas && cursor !== null; pedidas++) {
+    const resposta = await buscarPagina(cursor);
+    filmes.push(...resposta.filmes.filter(filtrar));
+    cursor = resposta.proximo;
+    if (filmes.length >= minimo) break;
+  }
+  return { filmes, proximo: cursor };
 }
 
 // Dados de um filme pelo ID (para completar listas guardadas sem pôster).

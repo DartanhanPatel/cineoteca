@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { criarAssistidos, generosFavoritos, semNaoGostei, semMarcados } from "../js/assistidos.js";
+import { criarAssistidos, generosFavoritos } from "../js/assistidos.js";
 
 // Imita o localStorage do navegador.
 function armazenamentoFalso(inicial) {
@@ -136,14 +136,6 @@ test("generosFavoritos: ✓ +2, só 'Já assisti' +1, ✗ −2, 'Quero assistir'
   assert.deepEqual(generosFavoritos([]), []);
 });
 
-test("semNaoGostei tira da lista os filmes marcados com ✗", () => {
-  const assistidos = criarAssistidos(armazenamentoFalso());
-  assistidos.avaliar(filme(2), "nao");
-  assistidos.avaliar(filme(3), "gostei");
-  const filmes = [{ id: 1 }, { id: 2 }, { id: 3 }];
-  assert.deepEqual(semNaoGostei(filmes, assistidos.avaliacao).map((f) => f.id), [1, 3]);
-});
-
 test("marcado: qualquer marcação (✓, ✗, Quero assistir, Já assisti)", () => {
   const assistidos = criarAssistidos(armazenamentoFalso());
   assistidos.marcarStatus(filme(1), "quero");
@@ -167,11 +159,6 @@ test("restaurar volta o filme exatamente como estava (para o Desfazer)", () => {
   assistidos.restaurar(filme(2), vazio);
   assert.equal(assistidos.marcado(2), false);
   assert.equal(assistidos.lista().some((f) => f.id === 2), false); // sem marca: sai da lista
-});
-
-test("semMarcados tira da lista os filmes com alguma marcação", () => {
-  const filmes = [{ id: 1 }, { id: 2 }, { id: 3 }];
-  assert.deepEqual(semMarcados(filmes, (id) => id === 2).map((f) => f.id), [1, 3]);
 });
 
 test("foraDoCarrossel também vale para 'Quero assistir'", () => {
