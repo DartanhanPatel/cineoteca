@@ -29,12 +29,15 @@ import {
   marcarAba,
   atualizarContadores,
   lerRota,
+  lerAba,
+  enderecoComAba,
   definirFiltroAtivo,
   mostrarFiltro,
   atualizarBotaoMais,
   mostrarCarregando,
   mostrarVazio,
   mostrarErro,
+  mostrarDicaDoCelular,
 } from "./ui.js";
 
 // Valor que vem no config.example.js: significa "token ainda não configurado".
@@ -313,11 +316,17 @@ async function abrirLista(tipo) {
   }
 }
 
+// Guarda a aba no endereço sem recarregar a página (o F5 reabre nela).
+function lembrarAba(aba) {
+  history.replaceState(history.state, "", enderecoComAba(location, aba));
+}
+
 // Troca de aba. A busca é limpa (ela pertence ao catálogo).
 function aoTrocarAba(aba) {
   if (aba === estado.aba && aba === "catalogo" && estado.termo === "") return;
   estado.aba = aba;
   marcarAba(aba);
+  lembrarAba(aba);
   clearTimeout(temporizador);
   estado.termo = "";
   definirTextoBusca("");
@@ -352,6 +361,7 @@ function aoDigitar(texto) {
     if (novoTermo && estado.aba !== "catalogo") {
       estado.aba = "catalogo";
       marcarAba("catalogo");
+      lembrarAba("catalogo");
       mostrarFiltro(true);
     }
     estado.termo = novoTermo;
@@ -450,12 +460,16 @@ async function iniciar() {
     ligarBusca(aoDigitar);
     ligarAbas(aoTrocarAba);
     ligarMarca(irParaInicio);
-    aplicarFiltro();
+    // Abre na aba que estava no endereço (depois de um F5, por exemplo).
+    const abaSalva = lerAba(location.search);
+    if (abaSalva === "catalogo") aplicarFiltro();
+    else aoTrocarAba(abaSalva);
     window.addEventListener("hashchange", () => {
       navegouDentro = true;
       seguirRota();
     });
     seguirRota(); // quem abriu o site já num link de filme
+    mostrarDicaDoCelular();
   } catch (erro) {
     mostrarErro(erro, iniciar);
   }

@@ -8,12 +8,14 @@ Um site que mostra os filmes disponíveis agora nos serviços de streaming no Br
 - **Filtrar por streaming:** clique nos logos (Netflix, Prime Video...) para ver só os filmes deles.
 - **Buscar pelo título:** digite na caixa de busca. Cada resultado mostra os logos de onde assistir, ou "Fora do streaming".
 - **Ver recomendações:** o destaque no topo é um carrossel com 4 filmes acima de 7,5, que troca a cada 5 segundos. Ele aprende com o que você marca: cada filme dá pontos aos gêneros dele (✓ gostei +2, só "Já assisti" +1, ✗ não gostei −2), e o carrossel usa os 3 gêneros com mais pontos. Se você já marcou todos os filmes acima de 7,5, ele completa com notas menores (7,0, 6,5... até 5,0).
-- **Avaliar filmes:** passe o mouse num pôster.
+- **Avaliar filmes:** passe o mouse num pôster (no celular, segure o dedo no pôster por meio segundo).
   - **✓ Gostei:** fica marcado no pôster e reforça os gêneros do filme nas recomendações.
   - **✗ Não gostei:** o filme some do site (dá para desfazer por 5 segundos).
   - **＋ Quero assistir** e **👁 Já assisti:** guardam o filme nas abas do topo.
   - Filme marcado sai do Catálogo e fica só na aba dele (dá para desfazer por 5 segundos). No lugar dele entra um filme novo no fim da grade, então a quantidade na tela não diminui. Na busca, ele continua aparecendo, com a marca.
 - **Abrir a página do filme:** clique no pôster ou no destaque. Ela tem trailer, sinopse, elenco, classificação indicativa e onde assistir.
+
+A aba aberta fica no endereço da página (`?aba=quero`), então o F5 reabre na mesma aba.
 
 As marcações ficam guardadas no seu navegador. Elas continuam lá quando você fecha o site, mas não passam para outro computador.
 
@@ -91,6 +93,8 @@ npm test
 - [x] Os botões do pôster só aparecem com o mouse em cima; depois de marcado, só o ✓ fica visível.
 - [x] Dar ✗ num filme faz ele sumir; "Desfazer" traz de volta. Recarregando a página, ele continua oculto.
 - [x] "Quero assistir" e "Já assisti" aparecem nas abas do topo, com o número certo.
+- [ ] Na aba "Quero assistir", apertar F5 reabre na mesma aba (também com a página de um filme aberta por cima).
+- [ ] No celular (DevTools, Ctrl+Shift+M): toque rápido no pôster abre o filme; segurar o dedo mostra os 4 botões grandes; tocar fora fecha; rolar a tela não abre nada.
 - [ ] Marcar um filme no Catálogo faz ele sair de lá na hora e um filme novo entra no fim da grade (continuam 20); "Desfazer" devolve como estava, e o filme que tinha entrado sai.
 - [ ] Os primeiros filmes do Catálogo têm todos nota 7,5 ou mais. Com um streaming pequeno marcado, clicando em "Carregar mais" até o fim, as notas descem por faixa, sem misturar.
 - [ ] Depois de marcar todos os filmes da primeira página e recarregar, o Catálogo continua cheio (com os filmes das páginas seguintes) e o carrossel continua com 4 filmes.

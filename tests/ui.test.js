@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { formatarAno, formatarNota, formatarDuracao, lerRota, resumirLogos } from "../js/ui.js";
+import { formatarAno, formatarNota, formatarDuracao, lerRota, lerAba, enderecoComAba, resumirLogos } from "../js/ui.js";
 
 test("formatarAno", () => {
   assert.equal(formatarAno("2024-05-01"), "2024");
@@ -36,4 +36,20 @@ test("lerRota reconhece #/filme/ID", () => {
   assert.equal(lerRota(""), null);
   assert.equal(lerRota("#/filme/abc"), null);
   assert.equal(lerRota("#/outra"), null);
+});
+
+test("lerAba lê a aba do endereço (?aba=...)", () => {
+  assert.equal(lerAba("?aba=quero"), "quero");
+  assert.equal(lerAba("?aba=assisti"), "assisti");
+  assert.equal(lerAba("?aba=qualquer"), "catalogo");
+  assert.equal(lerAba(""), "catalogo");
+});
+
+test("enderecoComAba guarda a aba sem mexer no resto do endereço", () => {
+  const endereco = { pathname: "/", search: "", hash: "" };
+  assert.equal(enderecoComAba(endereco, "quero"), "/?aba=quero");
+  assert.equal(enderecoComAba(endereco, "catalogo"), "/");
+  const comFilme = { pathname: "/index.html", search: "?aba=quero", hash: "#/filme/603" };
+  assert.equal(enderecoComAba(comFilme, "assisti"), "/index.html?aba=assisti#/filme/603");
+  assert.equal(enderecoComAba(comFilme, "catalogo"), "/index.html#/filme/603");
 });

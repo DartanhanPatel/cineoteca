@@ -540,6 +540,8 @@ button {
 .card:hover .status,
 .card:focus-within .avaliar,
 .card:focus-within .status,
+.card.aberto .avaliar,
+.card.aberto .status,
 .avaliar.gostei[aria-pressed="true"] {
   opacity: 1;
 }
@@ -627,16 +629,38 @@ button {
   color: var(--sala);
 }
 
-/* Telas de toque não têm "mouse em cima": as ações ficam na página do
-   filme. No pôster, só o selo do ✓. */
+/* Telas de toque não têm "mouse em cima": os botões aparecem segurando o
+   dedo no pôster (classe "aberto"), maiores, do tamanho de um dedo. Fora
+   isso, no pôster só fica o selo do ✓. */
 @media (hover: none) {
-  .card .avaliar:not(.gostei[aria-pressed="true"]),
-  .card .status-faixa {
+  .card:not(.aberto) .avaliar:not(.gostei[aria-pressed="true"]),
+  .card:not(.aberto) .status-faixa {
     display: none;
   }
-  .card:hover .poster {
+  .card:hover .poster,
+  .card:focus-within .poster {
     filter: none;
   }
+  .card.aberto .poster {
+    filter: brightness(0.45);
+  }
+  .card .avaliar {
+    width: 44px;
+    height: 44px;
+    font-size: 1.15rem;
+  }
+  .card .status {
+    padding: 11px 12px;
+    font-size: 0.85rem;
+  }
+  /* Segurar o dedo não seleciona texto nem abre o menu da imagem. */
+  .card-link {
+    -webkit-touch-callout: none;
+    user-select: none;
+  }
+}
+.card.aberto .status-faixa {
+  gap: 8px;
 }
 
 /* ---------- Logos de "onde assistir" (busca e listas) ---------- */

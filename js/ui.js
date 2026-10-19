@@ -45,6 +45,25 @@ export function lerRota(hash) {
   return achado ? { filme: Number(achado[1]) } : null;
 }
 
+// A aba aberta fica no endereço (?aba=quero), para o F5 reabrir nela.
+const ABAS_DE_LISTA = ["quero", "assisti"];
+
+// "?aba=quero" → "quero". Sem aba (ou aba desconhecida) → "catalogo".
+export function lerAba(busca) {
+  const aba = new URLSearchParams(busca ?? "").get("aba");
+  return ABAS_DE_LISTA.includes(aba) ? aba : "catalogo";
+}
+
+// Monta o endereço com a aba, mantendo o resto (incluindo #/filme/ID).
+// O Catálogo não aparece no endereço: é o padrão.
+export function enderecoComAba({ pathname, search, hash }, aba) {
+  const parametros = new URLSearchParams(search);
+  if (aba === "catalogo") parametros.delete("aba");
+  else parametros.set("aba", aba);
+  const texto = parametros.toString();
+  return pathname + (texto ? `?${texto}` : "") + hash;
+}
+
 // Endereço da página de detalhes de um filme.
 export const linkDoFilme = (idFilme) => `#/filme/${idFilme}`;
 
@@ -428,7 +447,7 @@ const DESTINO = { quero: "Quero assistir", assisti: "Já assisti" };
 const DURACAO_AVISO = 5000;
 let relogioAviso;
 
-function mostrarAviso(texto, rotuloAcao, aoAgir) {
+function mostrarAviso(texto, rotuloAcao, aoAgir, duracao = DURACAO_AVISO) {
   const aviso = $("#aviso");
   const mensagem = document.createElement("span");
   mensagem.textContent = texto;
@@ -446,7 +465,7 @@ function mostrarAviso(texto, rotuloAcao, aoAgir) {
   clearTimeout(relogioAviso);
   aviso.replaceChildren(mensagem, botao);
   aviso.hidden = false;
-  relogioAviso = setTimeout(esconder, DURACAO_AVISO);
+  relogioAviso = setTimeout(esconder, duracao);
 }
 
 export function criarBotoesAvaliacao(filme) {
@@ -569,6 +588,7 @@ function criarCard(filme, comOndeAssistir) {
 
   // Os botões ficam fora do link (botão dentro de link não é permitido).
   card.append(link, criarBotoesStatus(filme), ...criarBotoesAvaliacao(filme), info);
+  ligarToqueLongo(card, link);
 
   if (comOndeAssistir) {
     const faixa = document.createElement("div");
@@ -577,6 +597,91 @@ function criarCard(filme, comOndeAssistir) {
     card.append(faixa);
   }
   return card;
+}
+
+// ---------------------------------------------------------------
+// Celular: segurar o dedo no pôster mostra os botões
+// ---------------------------------------------------------------
+
+// Quanto tempo segurar, e quanto o dedo pode se mexer sem virar rolagem.
+const TEMPO_TOQUE_LONGO = 500;
+const TOLERANCIA_DEDO = 10;
+
+// Fecha os botões abertos de todos os cards (menos `exceto`).
+function fecharAcoes(exceto = null) {
+  for (const card of document.querySelectorAll(".card.aberto")) {
+    if (card !== exceto) card.classList.remove("aberto");
+  }
+}
+
+// Tocar fora de um card aberto fecha os botões (ligado uma vez só).
+let fecharAoTocarForaLigado = false;
+function ligarFecharAoTocarFora() {
+  if (fecharAoTocarForaLigado) return;
+  fecharAoTocarForaLigado = true;
+  document.addEventListener("pointerdown", (evento) => {
+    if (!evento.target.closest(".card.aberto")) fecharAcoes();
+  });
+}
+
+// Toque rápido no pôster: abre a página do filme (o link faz isso).
+// Segurar o dedo: mostra os botões do card, com uma vibração curta.
+// Com os botões abertos, tocar no pôster de novo só fecha os botões.
+function ligarToqueLongo(card, link) {
+  let relogio;
+  let inicio = null;
+  let acabouDeAbrir = false;
+  const cancelar = () => clearTimeout(relogio);
+
+  link.addEventListener("pointerdown", (evento) => {
+    if (evento.pointerType !== "touch") return; // mouse e caneta: nada muda
+    inicio = { x: evento.clientX, y: evento.clientY };
+    cancelar();
+    relogio = setTimeout(() => {
+      ligarFecharAoTocarFora();
+      fecharAcoes(card);
+      card.classList.add("aberto");
+      acabouDeAbrir = true;
+      navigator.vibrate?.(15);
+    }, TEMPO_TOQUE_LONGO);
+  });
+  // Dedo andou (a pessoa está rolando a tela): não é toque longo.
+  link.addEventListener("pointermove", (evento) => {
+    if (inicio && Math.hypot(evento.clientX - inicio.x, evento.clientY - inicio.y) > TOLERANCIA_DEDO) {
+      cancelar();
+    }
+  });
+  link.addEventListener("pointerup", cancelar);
+  link.addEventListener("pointercancel", cancelar);
+
+  link.addEventListener("click", (evento) => {
+    if (acabouDeAbrir) {
+      evento.preventDefault(); // o dedo soltou depois de abrir: não abre o filme
+      acabouDeAbrir = false;
+    } else if (card.classList.contains("aberto")) {
+      evento.preventDefault();
+      card.classList.remove("aberto");
+    }
+  });
+  // Segurar o dedo num link abre o menu do navegador ("abrir em nova
+  // aba"...); aqui segurar serve para os botões.
+  link.addEventListener("contextmenu", (evento) => {
+    if (inicio) evento.preventDefault();
+  });
+}
+
+// Dica mostrada uma vez, na primeira visita pelo celular.
+const CHAVE_DICA = "catalogo-filmes:dica-toque-longo";
+export function mostrarDicaDoCelular() {
+  if (!matchMedia("(hover: none)").matches) return;
+  try {
+    if (localStorage.getItem(CHAVE_DICA)) return;
+    localStorage.setItem(CHAVE_DICA, "1");
+  } catch {
+    return; // sem onde guardar: melhor não repetir a dica toda hora
+  }
+  // Mais tempo na tela que o aviso de "Desfazer": é um texto para ler.
+  mostrarAviso("Segure o dedo num pôster para marcar o filme.", "Entendi", () => {}, 8000);
 }
 
 // Tira da grade o card de um filme (usado quando o "Desfazer" devolve a
