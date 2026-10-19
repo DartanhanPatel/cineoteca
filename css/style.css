@@ -162,7 +162,12 @@ button {
 .aba:hover {
   color: var(--texto);
 }
+/* "Ocultos" é a aba menos importante: fica mais apagada. */
+.aba-ocultos {
+  opacity: 0.75;
+}
 .aba[aria-selected="true"] {
+  opacity: 1;
   color: var(--texto);
   box-shadow: inset 0 -2px 0 var(--tungstenio);
   border-radius: 0;
@@ -542,7 +547,7 @@ button {
 .card:focus-within .status,
 .card.aberto .avaliar,
 .card.aberto .status,
-.avaliar.gostei[aria-pressed="true"] {
+.avaliar[aria-pressed="true"] {
   opacity: 1;
 }
 
@@ -633,7 +638,7 @@ button {
    dedo no pôster (classe "aberto"), maiores, do tamanho de um dedo. Fora
    isso, no pôster só fica o selo do ✓. */
 @media (hover: none) {
-  .card:not(.aberto) .avaliar:not(.gostei[aria-pressed="true"]),
+  .card:not(.aberto) .avaliar:not([aria-pressed="true"]),
   .card:not(.aberto) .status-faixa {
     display: none;
   }

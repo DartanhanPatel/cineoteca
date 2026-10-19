@@ -58,7 +58,7 @@ test("daLista devolve os filmes do status, mais recentes primeiro, sem os com �
   assert.deepEqual(assistidos.daLista("quero").map((f) => f.id), [2, 1]);
   assert.deepEqual(assistidos.daLista("assisti").map((f) => f.id), [3]);
   assert.equal(assistidos.daLista("quero")[0].title, "Filme 2"); // guarda os dados do filme
-  assert.deepEqual(assistidos.contagem(), { quero: 2, assisti: 1 });
+  assert.deepEqual(assistidos.contagem(), { quero: 2, assisti: 1, ocultos: 1 });
 });
 
 test("daLista: marcados no mesmo instante, o último vem primeiro", () => {
@@ -94,7 +94,7 @@ test("marcações antigas (só ✓) contam como gostei e já assisti", () => {
   assert.equal(assistidos.avaliacao(7), "gostei");
   assert.equal(assistidos.status(7), "assisti");
   assert.equal(assistidos.status(8), "assisti");
-  assert.deepEqual(assistidos.semDados(), [7]); // a 8 tem ✗: não precisa de dados
+  assert.deepEqual(assistidos.semDados(), [7, 8]); // a 8 (✗) aparece na aba Ocultos
 });
 
 test("guardarDados completa marcações antigas sem título/pôster", () => {
@@ -165,4 +165,16 @@ test("foraDoCarrossel também vale para 'Quero assistir'", () => {
   const assistidos = criarAssistidos(armazenamentoFalso());
   assistidos.marcarStatus(filme(1), "quero");
   assert.equal(assistidos.foraDoCarrossel(1), true);
+});
+
+test("daLista('ocultos') traz só os filmes com ✗, mais recentes primeiro", () => {
+  let agora = 0;
+  const assistidos = criarAssistidos(armazenamentoFalso(), () => ++agora);
+  assistidos.avaliar(filme(1), "nao");
+  assistidos.avaliar(filme(2), "gostei");
+  assistidos.avaliar(filme(3), "nao");
+  assert.deepEqual(assistidos.daLista("ocultos").map((f) => f.id), [3, 1]);
+  assistidos.avaliar(filme(3), "nao"); // tirar o ✗ traz o filme de volta
+  assert.deepEqual(assistidos.daLista("ocultos").map((f) => f.id), [1]);
+  assert.equal(assistidos.contagem().ocultos, 1);
 });

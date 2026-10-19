@@ -143,6 +143,16 @@ function trocarFila(novaFila) {
 // A grade é o Catálogo (e não a busca nem uma aba de lista)?
 const noCatalogo = () => estado.aba === "catalogo" && estado.termo === "";
 
+// Depois de marcado ou desmarcado, o filme ainda pertence à grade atual?
+// - Catálogo: só filmes sem nenhuma marcação.
+// - Busca: todos, menos os com ✗.
+// - Abas: só os filmes daquela aba (desmarcou, sai da lista na hora).
+function continuaNaGrade(idFilme) {
+  if (estado.aba !== "catalogo") return assistidos.estaNaAba(idFilme, estado.aba);
+  if (estado.termo) return assistidos.avaliacao(idFilme) !== "nao";
+  return !assistidos.marcado(idFilme);
+}
+
 async function carregarFilmes({ acrescentar }) {
   const minhaBusca = ++ultimaBusca;
   const emBusca = estado.termo !== "";
@@ -254,6 +264,13 @@ function aoMarcarStatus(filme, tipo) {
 function aoRestaurar(filme, estadoAnterior) {
   assistidos.restaurar(filme, estadoAnterior);
   depoisDeMarcar(filme);
+  // Numa aba que tinha ficado vazia (a mensagem apagou os cards), desenha
+  // a lista de novo, já com o filme de volta.
+  if (estado.aba !== "catalogo" && listaFicouVazia) {
+    listaFicouVazia = false;
+    abrirLista(estado.aba);
+    return;
+  }
   const substituto = substitutos.get(filme.id);
   if (substituto && fila) {
     substitutos.delete(filme.id);
@@ -264,7 +281,21 @@ function aoRestaurar(filme, estadoAnterior) {
 
 // Um filme saiu do Catálogo (foi marcado): entra o próximo da fila no
 // fim da grade, para a quantidade de filmes na tela não diminuir.
+// true quando o último filme de uma aba saiu e a mensagem de vazia apareceu.
+let listaFicouVazia = false;
+
 async function aoSairDaGrade(filme) {
+  // Numa aba, se saiu o último filme, mostra a mensagem de lista vazia
+  // (depois da animação de saída do card).
+  if (estado.aba !== "catalogo" && assistidos.daLista(estado.aba).length === 0) {
+    const aba = estado.aba;
+    setTimeout(() => {
+      if (estado.aba !== aba || assistidos.daLista(aba).length > 0) return;
+      listaFicouVazia = true;
+      mostrarVazio(LISTA_VAZIA[aba]);
+    }, 300);
+    return;
+  }
   if (!noCatalogo() || !fila) return;
   const minhaFila = fila;
   try {
@@ -283,12 +314,14 @@ async function aoSairDaGrade(filme) {
 const LISTA_VAZIA = {
   quero: 'Nenhum filme em "Quero assistir" ainda. Passe o mouse num pôster e clique em "＋ Quero assistir".',
   assisti: 'Nenhum filme em "Já assisti" ainda. Passe o mouse num pôster e clique em "👁 Já assisti" (ou dê ✓).',
+  ocultos: "Nenhum filme oculto. Os filmes que você marca com ✗ ficam aqui; clique no ✗ de novo para trazer um de volta.",
 };
 
-// Mostra a aba "Quero assistir" ou "Já assisti": os filmes guardados no
-// navegador, com os logos de onde assistir.
+// Mostra a aba "Quero assistir", "Já assisti" ou "Ocultos": os filmes
+// guardados no navegador, com os logos de onde assistir.
 async function abrirLista(tipo) {
   const minhaBusca = ++ultimaBusca; // descarta respostas pendentes do catálogo
+  listaFicouVazia = false;
   trocarFila(null);
   esconderCarrossel();
   mostrarFiltro(false);
@@ -327,6 +360,7 @@ function aoTrocarAba(aba) {
   estado.aba = aba;
   marcarAba(aba);
   lembrarAba(aba);
+  atualizarContadores(assistidos.contagem()); // esconde "Ocultos" se ficou vazia
   clearTimeout(temporizador);
   estado.termo = "";
   definirTextoBusca("");
@@ -362,6 +396,7 @@ function aoDigitar(texto) {
       estado.aba = "catalogo";
       marcarAba("catalogo");
       lembrarAba("catalogo");
+      atualizarContadores(assistidos.contagem());
       mostrarFiltro(true);
     }
     estado.termo = novoTermo;
@@ -448,8 +483,8 @@ async function iniciar() {
     aoMarcarStatus,
     estadoDe: (id) => assistidos.estado(id),
     restaurar: aoRestaurar,
-    // Marcados saem da grade só no Catálogo (não na busca nem nas listas).
-    saiDaGrade: noCatalogo,
+    continuaNaGrade,
+    abaAtual: () => (estado.termo ? "busca" : estado.aba),
     aoSairDaGrade,
   });
   atualizarContadores(assistidos.contagem());

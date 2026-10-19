@@ -98,20 +98,27 @@ export function criarAssistidos(armazenamento = globalThis.localStorage, relogio
     // Filmes de uma aba, do mais recente para o mais antigo (sem os com ✗).
     // A lista guarda os mais novos no fim; invertida, o empate de horário
     // também fica com o marcado por último.
+    // tipo: "quero", "assisti" ou "ocultos" (os filmes com ✗).
     daLista(tipo) {
       return [...lista]
         .reverse()
-        .filter((f) => f.status === tipo && f.avaliacao !== "nao" && f.filme)
+        .filter((f) => pertenceA(f, tipo) && f.filme)
         .sort((a, b) => (b.quando ?? 0) - (a.quando ?? 0))
         .map((f) => f.filme);
     },
 
     contagem() {
-      const visiveis = lista.filter((f) => f.avaliacao !== "nao");
       return {
-        quero: visiveis.filter((f) => f.status === "quero").length,
-        assisti: visiveis.filter((f) => f.status === "assisti").length,
+        quero: lista.filter((f) => pertenceA(f, "quero")).length,
+        assisti: lista.filter((f) => pertenceA(f, "assisti")).length,
+        ocultos: lista.filter((f) => pertenceA(f, "ocultos")).length,
       };
+    },
+
+    // O filme aparece nessa aba? (para tirá-lo da tela quando deixar de aparecer)
+    estaNaAba: (idFilme, tipo) => {
+      const marcado = achar(idFilme);
+      return Boolean(marcado) && pertenceA(marcado, tipo);
     },
 
     // Tem alguma marcação? (✓, ✗, Quero assistir ou Já assisti)
@@ -127,7 +134,7 @@ export function criarAssistidos(armazenamento = globalThis.localStorage, relogio
     },
 
     // Marcações da versão anterior não guardavam título e pôster.
-    semDados: () => lista.filter((f) => !f.filme && f.avaliacao !== "nao").map((f) => f.id),
+    semDados: () => lista.filter((f) => !f.filme).map((f) => f.id),
     guardarDados(filme) {
       const marcado = achar(filme.id);
       if (!marcado) return;
@@ -135,6 +142,13 @@ export function criarAssistidos(armazenamento = globalThis.localStorage, relogio
       salvar();
     },
   };
+}
+
+// Em qual aba o filme marcado aparece: os com ✗ só em "Ocultos"; os outros
+// na aba do status deles ("Quero assistir" ou "Já assisti").
+function pertenceA(filme, tipo) {
+  if (tipo === "ocultos") return filme.avaliacao === "nao";
+  return filme.status === tipo && filme.avaliacao !== "nao";
 }
 
 function ler(armazenamento) {

@@ -46,7 +46,7 @@ export function lerRota(hash) {
 }
 
 // A aba aberta fica no endereço (?aba=quero), para o F5 reabrir nela.
-const ABAS_DE_LISTA = ["quero", "assisti"];
+const ABAS_DE_LISTA = ["quero", "assisti", "ocultos"];
 
 // "?aba=quero" → "quero". Sem aba (ou aba desconhecida) → "catalogo".
 export function lerAba(busca) {
@@ -172,9 +172,13 @@ export function marcarAba(nome) {
   }
 }
 
-export function atualizarContadores({ quero, assisti }) {
+export function atualizarContadores({ quero, assisti, ocultos }) {
   $('.aba[data-aba="quero"] .contador').textContent = quero;
   $('.aba[data-aba="assisti"] .contador').textContent = assisti;
+  // A aba "Ocultos" só aparece quando há filmes com ✗ (ou enquanto está aberta).
+  const abaOcultos = $('.aba[data-aba="ocultos"]');
+  abaOcultos.querySelector(".contador").textContent = ocultos;
+  abaOcultos.hidden = ocultos === 0 && abaOcultos.getAttribute("aria-selected") !== "true";
 }
 
 // Durante a busca, os logos de filtro ficam apagados e sem clique.
@@ -386,7 +390,8 @@ let avaliacoes = {
   aoMarcarStatus: () => null,
   estadoDe: () => ({ avaliacao: null, status: null }),
   restaurar: () => {},
-  saiDaGrade: () => false, // filmes marcados saem da grade? (só no Catálogo)
+  continuaNaGrade: () => true, // depois de marcado, o filme ainda pertence à grade atual?
+  abaAtual: () => "catalogo", // "catalogo", "busca", "quero", "assisti" ou "ocultos"
   aoSairDaGrade: () => {}, // um card saiu da grade (o app repõe outro filme)
 };
 
@@ -405,6 +410,13 @@ const BOTOES_STATUS = [
   { tipo: "assisti", simbolo: "👁", rotulo: "Já assisti" },
 ];
 
+// Texto que aparece ao parar o mouse num botão ✓/✗. No ✗ marcado (aba
+// Ocultos), ensina como trazer o filme de volta.
+function dicaDoBotao(tipo, avaliacao) {
+  if (tipo === "nao" && avaliacao === "nao") return "Oculto. Clique para mostrar de novo";
+  return BOTOES_AVALIACAO.find((b) => b.tipo === tipo).rotulo;
+}
+
 // Atualiza os botões desse filme em todo lugar (cards da grade e página
 // do filme) para mostrar as marcações atuais.
 function atualizarMarcas(idFilme) {
@@ -412,6 +424,7 @@ function atualizarMarcas(idFilme) {
   const status = avaliacoes.statusDe(idFilme);
   for (const botao of document.querySelectorAll(`.avaliar[data-filme-id="${idFilme}"]`)) {
     botao.setAttribute("aria-pressed", String(botao.dataset.tipo === avaliacao));
+    botao.title = dicaDoBotao(botao.dataset.tipo, avaliacao);
   }
   for (const botao of document.querySelectorAll(`.status[data-filme-id="${idFilme}"]`)) {
     botao.setAttribute("aria-pressed", String(botao.dataset.tipo === status));
@@ -440,8 +453,29 @@ function retirarDaGrade(filme, estadoAnterior, texto) {
   });
 }
 
-// Para onde o filme foi, para o texto do aviso.
-const DESTINO = { quero: "Quero assistir", assisti: "Já assisti" };
+// Nomes das abas, para o texto do aviso.
+const NOME_ABA = { quero: "Quero assistir", assisti: "Já assisti", ocultos: "Ocultos" };
+
+// Texto do aviso quando um filme sai da grade: diz para onde ele foi.
+function textoDeSaida(filme) {
+  const titulo = `"${filme.title}"`;
+  const avaliacao = avaliacoes.avaliacaoDe(filme.id);
+  const status = avaliacoes.statusDe(filme.id);
+  const aba = avaliacoes.abaAtual();
+  if (avaliacao === "nao") return `${titulo} não vai mais aparecer. Ele fica na aba Ocultos.`;
+  if (status && status !== aba) return `${titulo} foi para ${NOME_ABA[status]}.`;
+  if (aba === "ocultos") return `${titulo} voltou para o Catálogo.`;
+  if (NOME_ABA[aba]) return `${titulo} saiu de ${NOME_ABA[aba]}.`;
+  return `${titulo} foi desmarcado.`;
+}
+
+// Depois de um clique num botão: se o filme não pertence mais à grade
+// atual (por exemplo, foi marcado no Catálogo ou desmarcado numa aba),
+// ele sai da tela com o aviso de "Desfazer".
+function conferirSeSai(filme, estadoAnterior) {
+  atualizarMarcas(filme.id);
+  if (!avaliacoes.continuaNaGrade(filme.id)) retirarDaGrade(filme, estadoAnterior, textoDeSaida(filme));
+}
 
 // Aviso no rodapé da tela que some sozinho depois de 5 segundos.
 const DURACAO_AVISO = 5000;
@@ -475,19 +509,13 @@ export function criarBotoesAvaliacao(filme) {
     botao.dataset.tipo = tipo;
     botao.dataset.filmeId = filme.id;
     botao.textContent = simbolo;
-    botao.title = rotulo;
+    botao.title = dicaDoBotao(tipo, avaliacoes.avaliacaoDe(filme.id));
     botao.setAttribute("aria-label", `${rotulo}: ${filme.title}`);
     botao.setAttribute("aria-pressed", String(avaliacoes.avaliacaoDe(filme.id) === tipo));
     botao.onclick = () => {
       const antes = avaliacoes.estadoDe(filme.id);
-      const avaliacao = avaliacoes.aoAvaliar(filme, tipo);
-      atualizarMarcas(filme.id);
-      // ✗ some em qualquer lugar; ✓ sai do Catálogo (vai para "Já assisti").
-      if (avaliacao === "nao") {
-        retirarDaGrade(filme, antes, `"${filme.title}" não vai mais aparecer.`);
-      } else if (avaliacao && avaliacoes.saiDaGrade()) {
-        retirarDaGrade(filme, antes, `"${filme.title}" foi para ${DESTINO.assisti}.`);
-      }
+      avaliacoes.aoAvaliar(filme, tipo);
+      conferirSeSai(filme, antes);
     };
     return botao;
   });
@@ -509,11 +537,8 @@ export function criarBotoesStatus(filme, classe = "status-faixa") {
       botao.setAttribute("aria-pressed", String(avaliacoes.statusDe(filme.id) === tipo));
       botao.onclick = () => {
         const antes = avaliacoes.estadoDe(filme.id);
-        const status = avaliacoes.aoMarcarStatus(filme, tipo);
-        atualizarMarcas(filme.id);
-        if (status && avaliacoes.saiDaGrade()) {
-          retirarDaGrade(filme, antes, `"${filme.title}" foi para ${DESTINO[status]}.`);
-        }
+        avaliacoes.aoMarcarStatus(filme, tipo);
+        conferirSeSai(filme, antes);
       };
       return botao;
     })
