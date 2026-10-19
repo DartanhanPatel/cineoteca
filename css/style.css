@@ -1,12 +1,26 @@
-/* Cores do tema escuro — mude aqui para trocar o visual inteiro. */
+/* ==============================================================
+   Catálogo de Streaming: "Sala escura"
+   A página é uma sala de cinema: o filme em destaque é a única luz,
+   e as cores dele se espalham pelo fundo. O resto fica quieto.
+   Mude as cores e fontes aqui para trocar o visual inteiro.
+   ============================================================== */
 :root {
-  --fundo: #0f1117;
-  --superficie: #1b1e27;
-  --borda: #2a2e3a;
-  --texto: #f2f3f5;
-  --texto-suave: #9aa0ac;
-  --destaque: #01b4e4; /* azul da TMDB */
-  --raio: 10px;
+  --sala: #000000; /* fundo: preto de verdade, para a luz do filme aparecer */
+  --veludo: #15161c; /* campos e botões secundários */
+  --veludo-claro: #22242d;
+  --linha: rgb(255 255 255 / 0.12);
+  --texto: #f2efe8; /* luz de tela */
+  --penumbra: #8a8d99; /* texto secundário */
+  --tungstenio: #ffc247; /* ✓, botão "Assistir", foco do teclado */
+  --sinal: #ff4d57; /* ✗ "Não gostei" */
+  --quero: #b9a7ff; /* "Quero assistir" */
+  --assisti: #63e2a4; /* "Já assisti" */
+
+  --fonte-titulo: "Big Shoulders Display", "Arial Narrow", sans-serif;
+  --fonte-texto: "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  /* Margem lateral da página: cresce com a tela. */
+  --margem: clamp(16px, 5vw, 72px);
   color-scheme: dark;
 }
 
@@ -16,70 +30,381 @@
 
 body {
   margin: 0;
-  background: var(--fundo);
+  background: var(--sala);
   color: var(--texto);
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  line-height: 1.4;
+  font-family: var(--fonte-texto);
+  font-size: 1rem;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+}
+body.com-detalhe {
+  overflow: hidden;
+}
+
+/* O conteúdo fica na frente da "luz" do fundo. */
+.destaque,
+.barra,
+.conteudo,
+.rodape {
+  position: relative;
+  z-index: 1;
+}
+
+a {
+  color: inherit;
+}
+
+button {
+  font: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--tungstenio);
+  outline-offset: 3px;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+/* ---------- A luz da sala ---------- */
+.ambiente {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 160vh;
+  overflow: hidden;
+  pointer-events: none;
+  mask-image: linear-gradient(to bottom, #000 25%, transparent 100%);
+}
+.ambiente img {
+  position: absolute;
+  inset: -15%;
+  width: 130%;
+  height: 130%;
+  object-fit: cover;
+  filter: blur(90px) saturate(1.9) brightness(0.75);
+  opacity: 0;
+  transition: opacity 1.2s ease;
+}
+.ambiente img.acesa {
+  opacity: 0.6;
 }
 
 /* ---------- Cabeçalho ---------- */
 .cabecalho {
-  padding: 32px 16px 8px;
-  max-width: 1400px;
-  margin: 0 auto;
-}
-.cabecalho h1 {
-  margin: 0;
-  font-size: clamp(1.6rem, 4vw, 2.4rem);
-}
-.cabecalho p {
-  margin: 4px 0 0;
-  color: var(--texto-suave);
-}
-
-/* ---------- Barra de streamings ---------- */
-.barra {
   position: sticky;
   top: 0;
-  z-index: 1;
+  z-index: 20;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 12px 32px;
+  padding: 14px var(--margem);
+  background: rgb(0 0 0 / 0.55);
+  backdrop-filter: blur(18px) saturate(1.4);
+  -webkit-backdrop-filter: blur(18px) saturate(1.4);
+}
+.marca {
+  margin: 0;
+  font-family: var(--fonte-titulo);
+  font-weight: 800;
+  font-size: 1.75rem;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+.abas {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.aba {
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  max-width: 1400px;
-  margin: 0 auto;
-  background: var(--fundo);
+  gap: 6px;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--penumbra);
+  font-weight: 600;
+  cursor: pointer;
+  /* Sublinhado da aba ativa */
+  box-shadow: inset 0 -2px 0 transparent;
+  transition: color 0.15s, box-shadow 0.15s;
+}
+.aba:hover {
+  color: var(--texto);
+}
+.aba[aria-selected="true"] {
+  color: var(--texto);
+  box-shadow: inset 0 -2px 0 var(--tungstenio);
+  border-radius: 0;
+}
+.contador {
+  min-width: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--veludo-claro);
+  color: var(--texto);
+  font-size: 0.75rem;
+  line-height: 1.6;
+  text-align: center;
+}
+
+.busca {
+  position: relative;
+  width: clamp(180px, 24vw, 320px);
+}
+.busca input {
+  width: 100%;
+  padding: 10px 38px 10px 38px;
+  border: 1px solid var(--linha);
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.07)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%238a8d99' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='7' cy='7' r='5.5'/%3E%3Cpath d='m11.5 11.5 3.5 3.5'/%3E%3C/svg%3E")
+    no-repeat 14px center;
+  color: var(--texto);
+  font: inherit;
+}
+.busca input::placeholder {
+  color: var(--penumbra);
+}
+.busca input:focus {
+  outline: none;
+  border-color: var(--tungstenio);
+  background-color: rgb(0 0 0 / 0.6);
+}
+.busca input::-webkit-search-cancel-button {
+  display: none;
+}
+.limpar-busca {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--penumbra);
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.limpar-busca:hover {
+  color: var(--texto);
+  background: var(--veludo-claro);
+}
+
+/* ---------- Destaque: a tela do cinema ---------- */
+.destaque {
+  height: clamp(480px, 80vh, 860px);
+  margin-top: -70px; /* passa por baixo do cabeçalho transparente */
+  overflow: hidden;
+}
+.slide {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+  transition: opacity 0.9s ease;
+}
+.slide.ativo {
+  opacity: 1;
+  z-index: 1;
+}
+.destaque-fundo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 30%;
+  /* A imagem se dissolve embaixo, deixando a luz da sala aparecer. */
+  mask-image: linear-gradient(to bottom, #000 50%, transparent 100%);
+}
+/* Escurece à esquerda, onde fica o texto (e também se dissolve embaixo,
+   senão marcaria uma linha onde o destaque termina). */
+.slide::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, rgb(0 0 0 / 0.8) 0%, rgb(0 0 0 / 0.35) 42%, transparent 68%);
+  mask-image: linear-gradient(to bottom, #000 50%, transparent 100%);
+}
+.destaque-texto {
+  position: absolute;
+  z-index: 1;
+  left: var(--margem);
+  bottom: clamp(48px, 10vh, 110px);
+  width: min(660px, calc(100% - 2 * var(--margem)));
+}
+.destaque-rotulo {
+  margin: 0 0 10px;
+  color: var(--tungstenio);
+  font-weight: 600;
+}
+.destaque-titulo {
+  margin: 0 0 18px;
+  font-family: var(--fonte-titulo);
+  font-weight: 800;
+  font-size: clamp(3.2rem, 8.5vw, 8.4rem);
+  line-height: 0.86;
+  letter-spacing: -0.005em;
+  text-wrap: balance;
+  text-shadow: 0 6px 40px rgb(0 0 0 / 0.45);
+}
+.destaque-titulo.longo {
+  font-size: clamp(2.6rem, 5.6vw, 5.4rem);
+  line-height: 0.9;
+}
+.destaque-info,
+.info,
+.ficha-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 16px;
+  margin: 0;
+}
+.destaque-info {
+  margin-bottom: 12px;
+  font-weight: 600;
+}
+.nota {
+  color: var(--tungstenio);
+}
+.destaque-sinopse {
+  max-width: 54ch;
+  margin: 0 0 24px;
+  color: rgb(242 239 232 / 0.86);
+  font-size: 1.05rem;
+  line-height: 1.55;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.destaque-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px 20px;
+}
+.destaque-acoes .logo-mini {
+  width: 30px;
+  height: 30px;
+}
+
+.botao-claro {
+  display: inline-block;
+  padding: 13px 26px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--texto);
+  color: var(--sala);
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.botao-claro:hover {
+  background: var(--tungstenio);
+}
+
+/* Bolinhas que enchem: mostram quando o próximo filme entra. */
+.bolinhas {
+  position: absolute;
+  z-index: 2;
+  right: var(--margem);
+  bottom: clamp(48px, 10vh, 110px);
+  display: flex;
+  gap: 6px;
+}
+.bolinha {
+  position: relative;
+  width: 40px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+.bolinha::before,
+.progresso {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 10px;
+  height: 4px;
+  border-radius: 2px;
+}
+.bolinha::before {
+  right: 0;
+  background: rgb(255 255 255 / 0.25);
+}
+.progresso {
+  width: 0;
+  background: var(--texto);
+}
+.bolinha[aria-current="true"] .progresso {
+  animation: encher linear forwards;
+}
+.destaque.pausado .progresso {
+  animation-play-state: paused;
+}
+@keyframes encher {
+  to {
+    width: 100%;
+  }
+}
+
+/* ---------- Filtro por streaming ---------- */
+.barra {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px var(--margem) 8px;
+}
+.barra.desativada {
+  opacity: 0.3;
 }
 .provedores {
   display: flex;
   gap: 10px;
   overflow-x: auto;
-  padding: 4px 2px 8px;
+  padding: 6px 4px 10px;
   flex: 1;
   scrollbar-width: thin;
+  scrollbar-color: var(--veludo-claro) transparent;
 }
 .provedor {
   flex: 0 0 auto;
-  width: 48px;
-  height: 48px;
+  width: 44px;
+  height: 44px;
   padding: 0;
-  border: 2px solid transparent;
-  border-radius: 50%;
+  border: 0;
+  border-radius: 12px;
   overflow: hidden;
-  background: var(--superficie);
+  background: var(--veludo);
   cursor: pointer;
   filter: grayscale(1);
-  opacity: 0.5;
-  transition: opacity 0.15s, filter 0.15s, border-color 0.15s, transform 0.15s;
+  opacity: 0.45;
+  transition: opacity 0.15s, filter 0.15s;
 }
 .provedor:hover {
   opacity: 0.85;
-  transform: scale(1.06);
 }
 .provedor[aria-pressed="true"] {
   filter: none;
   opacity: 1;
-  border-color: var(--destaque);
+  outline: 2px solid var(--tungstenio);
+  outline-offset: 2px;
 }
 .provedor img {
   width: 100%;
@@ -88,38 +413,44 @@ body {
 }
 .limpar {
   flex: 0 0 auto;
-  padding: 8px 14px;
-  border: 1px solid var(--borda);
+  padding: 8px 16px;
+  border: 1px solid var(--linha);
   border-radius: 999px;
   background: transparent;
   color: var(--texto);
   cursor: pointer;
 }
 .limpar:hover {
-  border-color: var(--destaque);
+  border-color: var(--tungstenio);
 }
 
-/* ---------- Grade de filmes ---------- */
+/* ---------- Grade de pôsteres ---------- */
 .conteudo {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 8px 16px 32px;
+  padding: 16px var(--margem) 56px;
 }
 .grade {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 20px 16px;
+  grid-template-columns: repeat(auto-fill, minmax(156px, 1fr));
+  gap: 32px 18px;
 }
 .card {
+  position: relative;
   min-width: 0;
+  transition: opacity 0.25s, transform 0.25s;
+}
+.card-link {
+  display: block;
+  text-decoration: none;
+  border-radius: 6px;
 }
 .poster {
   width: 100%;
   aspect-ratio: 2 / 3;
   object-fit: cover;
-  border-radius: var(--raio);
-  background: var(--superficie);
+  border-radius: 6px;
+  background: var(--veludo);
   display: block;
+  transition: filter 0.2s;
 }
 .sem-poster {
   display: flex;
@@ -127,77 +458,664 @@ body {
   justify-content: center;
   padding: 12px;
   text-align: center;
-  color: var(--texto-suave);
-  border: 1px solid var(--borda);
+  font-family: var(--fonte-titulo);
+  font-weight: 700;
+  font-size: 1.4rem;
+  line-height: 1;
+  color: var(--penumbra);
+  border: 1px solid var(--linha);
+}
+/* Com o mouse em cima, o pôster escurece para os botões ficarem legíveis. */
+.card:hover .poster,
+.card:focus-within .poster {
+  filter: brightness(0.6);
 }
 .titulo {
-  margin: 8px 0 2px;
+  margin: 10px 0 2px;
   font-size: 0.95rem;
   font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.card-link:hover .titulo {
+  color: var(--tungstenio);
+}
 .info {
-  margin: 0;
   font-size: 0.85rem;
-  color: var(--texto-suave);
+  color: var(--penumbra);
 }
 
-/* Card "piscando" enquanto carrega (usado na Tarefa 5). */
+/* ✗ marcado: o card encolhe e some. */
+.card.saindo {
+  opacity: 0;
+  transform: scale(0.92);
+}
+
 .skeleton {
   aspect-ratio: 2 / 3;
-  border-radius: var(--raio);
-  background: var(--superficie);
+  border-radius: 6px;
+  background: var(--veludo);
   animation: pulsar 1.2s ease-in-out infinite;
 }
 @keyframes pulsar {
   50% {
-    opacity: 0.4;
+    opacity: 0.45;
   }
 }
 
-/* ---------- Mensagens e botão ---------- */
+/* ---------- Botões do pôster ---------- */
+/* ✗ e ✓ nos cantos de cima; "Quero assistir" e "Já assisti" embaixo.
+   Só aparecem com o mouse em cima (ou com foco do teclado).
+   O ✓ marcado fica sempre visível, como um selo. */
+.avaliar,
+.status {
+  opacity: 0;
+  transition: opacity 0.15s, background 0.15s, color 0.15s;
+}
+.card:hover .avaliar,
+.card:hover .status,
+.card:focus-within .avaliar,
+.card:focus-within .status,
+.avaliar.gostei[aria-pressed="true"] {
+  opacity: 1;
+}
+
+.avaliar {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid rgb(255 255 255 / 0.4);
+  border-radius: 50%;
+  background: rgb(0 0 0 / 0.6);
+  color: var(--texto);
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+.card .avaliar {
+  position: absolute;
+  top: 8px;
+}
+.card .avaliar.nao {
+  left: 8px;
+}
+.card .avaliar.gostei {
+  right: 8px;
+}
+.avaliar.nao:hover {
+  background: var(--sinal);
+  border-color: var(--sinal);
+}
+.avaliar.gostei:hover {
+  border-color: var(--tungstenio);
+}
+.avaliar.gostei[aria-pressed="true"] {
+  background: var(--tungstenio);
+  border-color: var(--tungstenio);
+  color: var(--sala);
+}
+.avaliar.nao[aria-pressed="true"] {
+  background: var(--sinal);
+  border-color: var(--sinal);
+}
+
+/* Camada do tamanho do pôster: os botões ficam no pé dela. */
+.status-faixa {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  aspect-ratio: 2 / 3;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 6px;
+  padding: 8px;
+  pointer-events: none; /* o clique passa para o pôster */
+}
+.status {
+  pointer-events: auto;
+  padding: 7px 12px;
+  border: 1px solid rgb(255 255 255 / 0.3);
+  border-radius: 999px;
+  background: rgb(0 0 0 / 0.65);
+  color: var(--texto);
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+.status:hover {
+  border-color: var(--texto);
+}
+.status.quero[aria-pressed="true"] {
+  background: var(--quero);
+  border-color: var(--quero);
+  color: var(--sala);
+}
+.status.assisti[aria-pressed="true"] {
+  background: var(--assisti);
+  border-color: var(--assisti);
+  color: var(--sala);
+}
+
+/* Telas de toque não têm "mouse em cima": as ações ficam na página do
+   filme. No pôster, só o selo do ✓. */
+@media (hover: none) {
+  .card .avaliar:not(.gostei[aria-pressed="true"]),
+  .card .status-faixa {
+    display: none;
+  }
+  .card:hover .poster {
+    filter: none;
+  }
+}
+
+/* ---------- Logos de "onde assistir" (busca e listas) ---------- */
+.onde-assistir {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 24px;
+  margin-top: 8px;
+  font-size: 0.78rem;
+  color: var(--penumbra);
+}
+.logo-mini {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  display: block;
+}
+.logo-mais {
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: var(--veludo-claro);
+  color: var(--texto);
+  font-weight: 600;
+}
+
+/* ---------- Mensagens, "Carregar mais" e aviso ---------- */
 .mensagem {
-  padding: 48px 16px;
+  max-width: 46ch;
+  margin: 0 auto;
+  padding: 64px 0;
   text-align: center;
-  color: var(--texto-suave);
+  color: var(--penumbra);
 }
 .mensagem button,
 .carregar-mais {
-  margin-top: 12px;
-  padding: 10px 22px;
-  border: 0;
+  margin-top: 16px;
+  padding: 12px 26px;
+  border: 1px solid var(--linha);
   border-radius: 999px;
-  background: var(--destaque);
-  color: #00121a;
+  background: var(--veludo);
+  color: var(--texto);
   font-weight: 600;
   cursor: pointer;
 }
+.mensagem button:hover,
+.carregar-mais:hover {
+  border-color: var(--tungstenio);
+}
 .carregar-mais {
   display: block;
-  margin: 32px auto 0;
-}
-.carregar-mais[hidden] {
-  display: none;
+  margin: 48px auto 0;
 }
 .carregar-mais:disabled {
   opacity: 0.6;
   cursor: wait;
 }
 
+.aviso {
+  position: fixed;
+  z-index: 60;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: max-content;
+  max-width: calc(100% - 32px);
+  padding: 10px 10px 10px 18px;
+  border: 1px solid var(--linha);
+  border-radius: 14px;
+  background: var(--veludo-claro);
+  box-shadow: 0 16px 40px rgb(0 0 0 / 0.6);
+  font-size: 0.9rem;
+}
+.aviso button {
+  flex: 0 0 auto;
+  padding: 7px 16px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--tungstenio);
+  color: var(--sala);
+  font-weight: 700;
+  cursor: pointer;
+}
+
 /* ---------- Rodapé ---------- */
 .rodape {
-  padding: 24px 16px 40px;
+  padding: 32px var(--margem) 48px;
+  border-top: 1px solid var(--linha);
   text-align: center;
   font-size: 0.8rem;
-  color: var(--texto-suave);
-  border-top: 1px solid var(--borda);
+  color: var(--penumbra);
 }
 .rodape p {
   margin: 4px 0;
 }
 .logo-tmdb {
   height: 14px;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
+}
+
+/* ==============================================================
+   Página do filme
+   ============================================================== */
+.detalhe {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: var(--sala);
+}
+.palco,
+.detalhe-conteudo {
+  position: relative;
+  z-index: 1;
+}
+
+.voltar {
+  position: fixed;
+  z-index: 5;
+  top: 16px;
+  left: var(--margem);
+  padding: 9px 18px;
+  border: 1px solid var(--linha);
+  border-radius: 999px;
+  background: rgb(0 0 0 / 0.5);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: var(--texto);
+  font-weight: 600;
+  cursor: pointer;
+}
+.voltar:hover {
+  border-color: var(--texto);
+}
+
+/* O palco: trailer (ou imagem) ocupando a largura toda. */
+.palco {
+  height: clamp(340px, 74vh, 800px);
+  overflow: hidden;
+  container-type: size;
+  /* O palco inteiro (imagem e trailer) se dissolve embaixo. */
+  mask-image: linear-gradient(to bottom, #000 50%, transparent 100%);
+}
+.palco:has(.com-controles) {
+  mask-image: none; /* com controles, o vídeo aparece inteiro */
+}
+.palco.carregando {
+  background: var(--veludo);
+  animation: pulsar 1.2s ease-in-out infinite;
+}
+.palco-fundo,
+.palco-trailer {
+  position: absolute;
+}
+.palco-fundo {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 30%;
+}
+/* O vídeo cobre o palco inteiro, como "object-fit: cover". */
+.palco-trailer {
+  top: 50%;
+  left: 50%;
+  width: max(100cqw, 177.78cqh);
+  height: max(56.25cqw, 100cqh);
+  /* Ampliado: muitos trailers vêm com faixas pretas de cinema dentro do
+     vídeo; a ampliação corta essas faixas. */
+  transform: translate(-50%, -50%) scale(1.34);
+  border: 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 1.5s ease;
+}
+.palco-trailer.tocando,
+.palco-trailer.com-controles {
+  opacity: 1;
+}
+.palco-trailer.com-controles {
+  pointer-events: auto;
+  transform: translate(-50%, -50%); /* com controles, o vídeo inteiro aparece */
+}
+.palco-controles {
+  position: absolute;
+  z-index: 2;
+  right: var(--margem);
+  top: 72px;
+  display: flex;
+  gap: 10px;
+}
+.botao-vidro {
+  padding: 9px 18px;
+  border: 1px solid var(--linha);
+  border-radius: 999px;
+  background: rgb(0 0 0 / 0.45);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: var(--texto);
+  font-weight: 600;
+  cursor: pointer;
+}
+.botao-vidro:hover {
+  border-color: var(--texto);
+}
+
+.detalhe-conteudo {
+  max-width: 1320px;
+  margin: -22vh auto 0;
+  padding: 0 var(--margem) 96px;
+}
+
+/* Ficha: pôster ao lado do título, avançando sobre o palco. */
+.ficha {
+  display: grid;
+  grid-template-columns: clamp(150px, 20vw, 270px) 1fr;
+  gap: clamp(24px, 4vw, 56px);
+  align-items: start;
+}
+.ficha-poster {
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  object-fit: cover;
+  border-radius: 8px;
+  box-shadow: 0 30px 70px rgb(0 0 0 / 0.7);
+}
+.ficha-texto {
+  padding-top: clamp(40px, 8vh, 96px);
+}
+.ficha-titulo {
+  margin: 0 0 10px;
+  font-family: var(--fonte-titulo);
+  font-weight: 800;
+  font-size: clamp(2.8rem, 7vw, 6.6rem);
+  line-height: 0.88;
+  text-wrap: balance;
+  text-shadow: 0 6px 40px rgb(0 0 0 / 0.5);
+}
+.ficha-titulo.longo {
+  font-size: clamp(2.4rem, 5vw, 4.6rem);
+  line-height: 0.92;
+}
+.ficha-tagline {
+  margin: 0 0 18px;
+  color: var(--penumbra);
+  font-size: 1.15rem;
+}
+.ficha-meta {
+  margin-bottom: 20px;
+  color: rgb(242 239 232 / 0.8);
+  font-weight: 500;
+}
+.ficha-sinopse {
+  max-width: 64ch;
+  margin: 0 0 28px;
+  font-size: 1.08rem;
+  line-height: 1.6;
+}
+.ficha-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+.assistir {
+  padding: 14px 28px;
+  border-radius: 999px;
+  background: var(--tungstenio);
+  color: var(--sala);
+  font-weight: 700;
+  text-decoration: none;
+  transition: transform 0.15s;
+}
+.assistir:hover {
+  transform: scale(1.03);
+}
+.assistir.indisponivel {
+  background: var(--veludo);
+  color: var(--penumbra);
+  font-weight: 600;
+}
+.ficha-status,
+.ficha-opiniao {
+  display: flex;
+  gap: 8px;
+}
+.ficha-status .status,
+.ficha-opiniao .avaliar {
+  opacity: 1;
+}
+.ficha-status .status {
+  padding: 11px 18px;
+  font-size: 0.9rem;
+  background: var(--veludo);
+}
+.ficha-opiniao .avaliar {
+  width: 44px;
+  height: 44px;
+  font-size: 1.1rem;
+  background: var(--veludo);
+}
+.ficha-direcao {
+  margin: 22px 0 0;
+  color: var(--penumbra);
+}
+
+/* Classificação indicativa com as cores oficiais brasileiras. */
+.classificacao {
+  display: inline-grid;
+  place-items: center;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 6px;
+  border-radius: 5px;
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+.ci-l {
+  background: #0a9a48;
+}
+.ci-10 {
+  background: #0f7dc2;
+}
+.ci-12 {
+  background: #f7c600;
+  color: #000;
+}
+.ci-14 {
+  background: #ef7d1a;
+}
+.ci-16 {
+  background: #d4252a;
+}
+.ci-18 {
+  background: #000;
+  box-shadow: inset 0 0 0 1px #fff;
+}
+
+.secao {
+  margin-top: clamp(48px, 7vw, 88px);
+}
+.secao-titulo {
+  margin: 0 0 18px;
+  font-family: var(--fonte-titulo);
+  font-weight: 800;
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.onde-grupos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px 48px;
+}
+.onde-grupo h3 {
+  margin: 0 0 10px;
+  color: var(--penumbra);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+.onde-logos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.onde-logo {
+  display: block;
+  border-radius: 12px;
+  transition: transform 0.15s;
+}
+.onde-logo:hover {
+  transform: translateY(-2px);
+}
+.onde-logo img {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  display: block;
+}
+.onde-fonte {
+  margin: 16px 0 0;
+  color: var(--penumbra);
+  font-size: 0.8rem;
+}
+
+.elenco-lista {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 124px;
+  gap: 18px;
+  margin: 0;
+  padding: 0 0 14px;
+  list-style: none;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: thin;
+  scrollbar-color: var(--veludo-claro) transparent;
+}
+.pessoa {
+  scroll-snap-align: start;
+}
+.pessoa-foto {
+  width: 124px;
+  aspect-ratio: 4 / 5;
+  object-fit: cover;
+  border-radius: 6px;
+  background: var(--veludo);
+  display: block;
+}
+.sem-foto {
+  display: grid;
+  place-items: center;
+  font-family: var(--fonte-titulo);
+  font-weight: 800;
+  font-size: 2.2rem;
+  color: var(--penumbra);
+}
+.pessoa-nome {
+  display: block;
+  margin: 10px 0 2px;
+  font-size: 0.92rem;
+  font-weight: 600;
+  line-height: 1.25;
+}
+.pessoa-papel {
+  display: block;
+  color: var(--penumbra);
+  font-size: 0.82rem;
+  line-height: 1.3;
+}
+
+.detalhe-erro {
+  max-width: 44ch;
+  margin: 0 auto;
+  padding: 30vh 16px 0;
+  text-align: center;
+  color: var(--penumbra);
+}
+
+/* ---------- Celular ---------- */
+@media (max-width: 760px) {
+  .cabecalho {
+    grid-template-columns: 1fr auto;
+  }
+  .abas {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+  .busca {
+    width: clamp(140px, 42vw, 220px);
+  }
+  .marca {
+    font-size: 1.45rem;
+  }
+  .destaque {
+    height: 78vh;
+    margin-top: -112px;
+  }
+  .destaque-sinopse {
+    -webkit-line-clamp: 2;
+  }
+  .bolinhas {
+    right: auto;
+    left: var(--margem);
+    bottom: 20px;
+  }
+  .destaque-texto {
+    bottom: 56px;
+  }
+  .grade {
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 24px 12px;
+  }
+  .ficha {
+    grid-template-columns: 1fr;
+  }
+  .ficha-poster {
+    width: 132px;
+  }
+  .ficha-texto {
+    padding-top: 0;
+  }
+  .detalhe-conteudo {
+    margin-top: -16vh;
+  }
+}
+
+/* ---------- Menos movimento ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .slide,
+  .ambiente img,
+  .palco-trailer,
+  .card {
+    transition: none;
+  }
+  .bolinha[aria-current="true"] .progresso {
+    animation: none;
+    width: 100%;
+  }
 }

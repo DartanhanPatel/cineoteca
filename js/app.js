@@ -1,8 +1,33 @@
 // app.js — o "maestro": guarda o estado e liga cliques → api → ui.
-import { definirToken, buscarProvedores, buscarFilmes, idsParaBusca } from "./api.js";
+import {
+  definirToken,
+  buscarProvedores,
+  buscarFilmes,
+  buscarPorTitulo,
+  buscarOndeAssistir,
+  buscarRecomendados,
+  buscarDetalhesFilme,
+  buscarDetalheCompleto,
+  idsParaBusca,
+} from "./api.js";
+import { renderizarDetalhe, mostrarDetalheCarregando, mostrarErroDetalhe, fecharDetalhe } from "./detalhe.js";
+import { criarAssistidos, generosFavoritos, semNaoGostei } from "./assistidos.js";
 import {
   renderizarProvedores,
   renderizarFilmes,
+  renderizarCarrossel,
+  escolherCarrossel,
+  configurarAvaliacoes,
+  preencherOndeAssistir,
+  preencherOndeAssistirDestaque,
+  ligarBusca,
+  definirTextoBusca,
+  ligarAbas,
+  marcarAba,
+  atualizarContadores,
+  lerRota,
+  definirFiltroAtivo,
+  mostrarFiltro,
   atualizarBotaoMais,
   mostrarCarregando,
   mostrarVazio,
@@ -12,10 +37,17 @@ import {
 // Valor que vem no config.example.js: significa "token ainda não configurado".
 const TOKEN_MODELO = "cole-seu-token-aqui";
 
+// A busca só começa com pelo menos 2 letras, meio segundo depois
+// que a pessoa para de digitar (assim não busca a cada letra).
+const MIN_LETRAS = 2;
+const ESPERA_DIGITACAO = 500;
+
 // Tudo que o app precisa lembrar fica aqui.
 const estado = {
   provedores: [], // lista de streamings vinda da TMDB
   selecionados: new Set(), // IDs dos streamings marcados
+  aba: "catalogo", // "catalogo", "quero" ou "assisti"
+  termo: "", // texto buscado; vazio = catálogo normal
   pagina: 1,
   totalPaginas: 1,
   carregando: false, // evita cliques duplos no "Carregar mais"
@@ -25,22 +57,99 @@ const estado = {
 // da resposta chegar, a resposta antiga é ignorada (só vale a última).
 let ultimaBusca = 0;
 
+// Marcações de cada filme: ✓/✗ e Quero assistir/Já assisti (no navegador).
+const assistidos = criarAssistidos();
+
+// "Onde assistir" já consultado, por ID do filme (evita perguntar duas vezes).
+const ondeAssistirCache = new Map();
+
+// Devolve a lista de streamings do filme, ou null se a consulta falhar.
+function consultarOndeAssistir(idFilme) {
+  if (!ondeAssistirCache.has(idFilme)) {
+    const promessa = buscarOndeAssistir(idFilme).catch(() => {
+      ondeAssistirCache.delete(idFilme); // falhou: tenta de novo na próxima vez
+      return null;
+    });
+    ondeAssistirCache.set(idFilme, promessa);
+  }
+  return ondeAssistirCache.get(idFilme);
+}
+
+// O carrossel tem seu próprio número de busca (independente da grade).
+let ultimoCarrossel = 0;
+// IDs dos filmes que estão no carrossel agora.
+let idsNoCarrossel = new Set();
+
+// Monta o carrossel: filmes acima de 7,5 dos gêneros que a pessoa mais
+// gosta (✓ soma, ✗ subtrai). Filmes avaliados ou já vistos não entram. Sem
+// gêneros favoritos (ou se eles não renderem nada), mostra os mais bem
+// avaliados de qualquer gênero.
+async function carregarCarrossel() {
+  const meuCarrossel = ++ultimoCarrossel;
+  const ids = idsParaBusca(estado.selecionados, estado.provedores);
+  const generos = generosFavoritos(assistidos.lista());
+  const foraDoCarrossel = (id) => assistidos.foraDoCarrossel(id);
+
+  try {
+    let rotulo = "Recomendados para você";
+    let filmes = generos.length > 0 ? escolherCarrossel(await buscarRecomendados(ids, generos), foraDoCarrossel) : [];
+    if (filmes.length === 0) {
+      rotulo = "Mais bem avaliados";
+      filmes = escolherCarrossel(await buscarRecomendados(ids, []), foraDoCarrossel);
+    }
+    if (meuCarrossel !== ultimoCarrossel) return; // chegou atrasado: descarta
+
+    idsNoCarrossel = new Set(filmes.map((f) => f.id));
+    renderizarCarrossel(filmes, rotulo);
+    for (const filme of filmes) {
+      consultarOndeAssistir(filme.id).then((lista) => preencherOndeAssistirDestaque(filme.id, lista));
+    }
+  } catch {
+    // O carrossel é um extra: se falhar, só some (a grade mostra o erro).
+    if (meuCarrossel === ultimoCarrossel) {
+      idsNoCarrossel = new Set();
+      renderizarCarrossel([]);
+    }
+  }
+}
+
+// Durante a busca o carrossel some (e respostas pendentes são ignoradas).
+function esconderCarrossel() {
+  ultimoCarrossel++;
+  idsNoCarrossel = new Set();
+  renderizarCarrossel([]);
+}
+
 async function carregarFilmes({ acrescentar }) {
   const minhaBusca = ++ultimaBusca;
+  const emBusca = estado.termo !== "";
   estado.carregando = true;
   if (acrescentar) atualizarBotaoMais({ visivel: true, carregando: true });
   else mostrarCarregando();
 
   try {
-    const ids = idsParaBusca(estado.selecionados, estado.provedores);
-    const resposta = await buscarFilmes(ids, estado.pagina);
+    const resposta = emBusca
+      ? await buscarPorTitulo(estado.termo, estado.pagina)
+      : await buscarFilmes(idsParaBusca(estado.selecionados, estado.provedores), estado.pagina);
     if (minhaBusca !== ultimaBusca) return; // chegou atrasada: descarta
 
     estado.pagina = resposta.pagina;
     estado.totalPaginas = resposta.totalPaginas;
-    if (resposta.filmes.length === 0 && !acrescentar) mostrarVazio();
-    else renderizarFilmes(resposta.filmes, { acrescentar });
+    // Filmes com ✗ não aparecem mais.
+    const filmes = semNaoGostei(resposta.filmes, assistidos.avaliacao);
+    if (filmes.length === 0 && !acrescentar) {
+      mostrarVazio(emBusca ? `Nenhum filme encontrado para "${estado.termo}".` : undefined);
+    } else {
+      renderizarFilmes(filmes, { acrescentar, comOndeAssistir: emBusca });
+    }
     atualizarBotaoMais({ visivel: estado.pagina < estado.totalPaginas, carregando: false });
+
+    if (emBusca) {
+      // Os pôsteres já estão na tela; os logos chegam um a um.
+      for (const filme of filmes) {
+        consultarOndeAssistir(filme.id).then((lista) => preencherOndeAssistir(filme.id, lista));
+      }
+    }
   } catch (erro) {
     if (minhaBusca !== ultimaBusca) return;
     if (acrescentar) {
@@ -61,6 +170,7 @@ async function carregarFilmes({ acrescentar }) {
 function aplicarFiltro() {
   estado.pagina = 1;
   renderizarProvedores(estado.provedores, estado.selecionados, aoClicarProvedor, aoLimpar);
+  carregarCarrossel();
   carregarFilmes({ acrescentar: false });
 }
 
@@ -79,6 +189,148 @@ function aoCarregarMais() {
   if (estado.carregando) return;
   estado.pagina += 1;
   carregarFilmes({ acrescentar: true });
+}
+
+// ✓ ou ✗ num card. Se o filme com ✗ estiver no carrossel, o carrossel é
+// refeito sem ele (os outros casos só mudam o carrossel na próxima vez).
+function aoAvaliar(filme, tipo) {
+  const avaliacao = assistidos.avaliar(filme, tipo);
+  atualizarContadores(assistidos.contagem());
+  if (avaliacao === "nao" && idsNoCarrossel.has(filme.id)) carregarCarrossel();
+  return avaliacao;
+}
+
+// "Quero assistir" ou "Já assisti" num card.
+function aoMarcarStatus(filme, tipo) {
+  const status = assistidos.marcarStatus(filme, tipo);
+  atualizarContadores(assistidos.contagem());
+  return status;
+}
+
+const LISTA_VAZIA = {
+  quero: 'Nenhum filme em "Quero assistir" ainda. Passe o mouse num pôster e clique em "＋ Quero assistir".',
+  assisti: 'Nenhum filme em "Já assisti" ainda. Passe o mouse num pôster e clique em "👁 Já assisti" (ou dê ✓).',
+};
+
+// Mostra a aba "Quero assistir" ou "Já assisti": os filmes guardados no
+// navegador, com os logos de onde assistir.
+async function abrirLista(tipo) {
+  const minhaBusca = ++ultimaBusca; // descarta respostas pendentes do catálogo
+  esconderCarrossel();
+  mostrarFiltro(false);
+  atualizarBotaoMais({ visivel: false, carregando: false });
+
+  // Marcações de versões antigas não têm título e pôster: busca na TMDB.
+  const faltando = assistidos.semDados();
+  if (faltando.length > 0) {
+    mostrarCarregando();
+    const detalhes = await Promise.allSettled(faltando.map((id) => buscarDetalhesFilme(id)));
+    for (const resultado of detalhes) {
+      if (resultado.status === "fulfilled") assistidos.guardarDados(resultado.value);
+    }
+    if (minhaBusca !== ultimaBusca) return; // trocou de aba enquanto isso
+  }
+
+  const filmes = assistidos.daLista(tipo);
+  if (filmes.length === 0) {
+    mostrarVazio(LISTA_VAZIA[tipo]);
+    return;
+  }
+  renderizarFilmes(filmes, { acrescentar: false, comOndeAssistir: true });
+  for (const filme of filmes) {
+    consultarOndeAssistir(filme.id).then((lista) => preencherOndeAssistir(filme.id, lista));
+  }
+}
+
+// Troca de aba. A busca é limpa (ela pertence ao catálogo).
+function aoTrocarAba(aba) {
+  if (aba === estado.aba && aba === "catalogo" && estado.termo === "") return;
+  estado.aba = aba;
+  marcarAba(aba);
+  clearTimeout(temporizador);
+  estado.termo = "";
+  definirTextoBusca("");
+
+  if (aba === "catalogo") {
+    mostrarFiltro(true);
+    definirFiltroAtivo(true);
+    aplicarFiltro();
+  } else {
+    abrirLista(aba);
+  }
+}
+
+// Chamado a cada letra digitada; só busca depois da pausa.
+let temporizador;
+function aoDigitar(texto) {
+  clearTimeout(temporizador);
+  temporizador = setTimeout(() => {
+    const termo = texto.trim();
+    const novoTermo = termo.length >= MIN_LETRAS ? termo : "";
+    if (novoTermo === estado.termo) return; // nada mudou
+
+    // Buscar numa aba de lista leva de volta ao catálogo.
+    if (novoTermo && estado.aba !== "catalogo") {
+      estado.aba = "catalogo";
+      marcarAba("catalogo");
+      mostrarFiltro(true);
+    }
+    estado.termo = novoTermo;
+    if (novoTermo) {
+      // Entrando (ou continuando) na busca: some o destaque, apaga o filtro.
+      esconderCarrossel();
+      definirFiltroAtivo(false);
+      estado.pagina = 1;
+      carregarFilmes({ acrescentar: false });
+    } else {
+      // Saindo da busca: volta o catálogo com os logos que estavam marcados.
+      definirFiltroAtivo(true);
+      aplicarFiltro();
+    }
+  }, ESPERA_DIGITACAO);
+}
+
+// ---------------------------------------------------------------
+// Página do filme (endereço #/filme/ID)
+// ---------------------------------------------------------------
+
+let ultimoDetalhe = 0;
+// true quando a página do filme foi aberta por um clique aqui dentro
+// (aí "Voltar" é só voltar no histórico do navegador).
+let navegouDentro = false;
+
+async function abrirDetalhe(idFilme) {
+  const meuDetalhe = ++ultimoDetalhe;
+  mostrarDetalheCarregando(fecharPaginaFilme);
+  try {
+    const filme = await buscarDetalheCompleto(idFilme);
+    if (meuDetalhe !== ultimoDetalhe) return; // abriu outro filme enquanto isso
+    renderizarDetalhe(filme, fecharPaginaFilme);
+  } catch (erro) {
+    if (meuDetalhe !== ultimoDetalhe) return;
+    mostrarErroDetalhe(erro, fecharPaginaFilme, () => abrirDetalhe(idFilme));
+  }
+}
+
+function fecharPaginaFilme() {
+  if (navegouDentro) {
+    history.back(); // o "hashchange" fecha a página
+  } else {
+    // Chegou direto pelo link do filme: limpa o endereço sem recarregar.
+    history.replaceState(null, "", location.pathname + location.search);
+    seguirRota();
+  }
+}
+
+// Abre ou fecha a página do filme conforme o endereço.
+function seguirRota() {
+  const rota = lerRota(location.hash);
+  if (rota) {
+    abrirDetalhe(rota.filme);
+  } else {
+    ultimoDetalhe++;
+    fecharDetalhe();
+  }
 }
 
 // Lê o token do js/config.js. Se o arquivo não existir (quem acabou de
@@ -101,11 +353,25 @@ async function iniciar() {
   }
   definirToken(TMDB_TOKEN);
   document.querySelector("#carregar-mais").onclick = aoCarregarMais;
+  configurarAvaliacoes({
+    avaliacaoDe: (id) => assistidos.avaliacao(id),
+    statusDe: (id) => assistidos.status(id),
+    aoAvaliar,
+    aoMarcarStatus,
+  });
+  atualizarContadores(assistidos.contagem());
 
   try {
     mostrarCarregando();
     estado.provedores = await buscarProvedores();
+    ligarBusca(aoDigitar);
+    ligarAbas(aoTrocarAba);
     aplicarFiltro();
+    window.addEventListener("hashchange", () => {
+      navegouDentro = true;
+      seguirRota();
+    });
+    seguirRota(); // quem abriu o site já num link de filme
   } catch (erro) {
     mostrarErro(erro, iniciar);
   }
