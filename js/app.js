@@ -14,6 +14,7 @@ import {
 import { renderizarDetalhe, mostrarDetalheCarregando, mostrarErroDetalhe, fecharDetalhe } from "./detalhe.js";
 import { criarAssistidos, generosFavoritos } from "./assistidos.js";
 import { criarFila } from "./fila.js";
+import { criarSincronia } from "./nuvem.js";
 import {
   renderizarProvedores,
   renderizarFilmes,
@@ -38,6 +39,7 @@ import {
   mostrarVazio,
   mostrarErro,
   mostrarDicaDoCelular,
+  mostrarMensagemRapida,
 } from "./ui.js";
 
 // Valor que vem no config.example.js: significa "token ainda não configurado".
@@ -61,7 +63,8 @@ const estado = {
 // da resposta chegar, a resposta antiga é ignorada (só vale a última).
 let ultimaBusca = 0;
 
-// Marcações de cada filme: ✓/✗ e Quero assistir/Já assisti (no navegador).
+// Marcações de cada filme: ✓/✗ e Quero assistir/Já assisti (no navegador
+// e, com a conta aberta, também no Supabase).
 const assistidos = criarAssistidos();
 
 // "Onde assistir" já consultado, por ID do filme (evita perguntar duas vezes).
@@ -462,19 +465,75 @@ function seguirRota() {
   }
 }
 
-// Lê o token do js/config.js. Se o arquivo não existir (quem acabou de
-// clonar o projeto), devolve "" em vez de quebrar a página inteira.
-async function lerToken() {
+// Lê o js/config.js. Se o arquivo não existir (quem acabou de clonar o
+// projeto), devolve {} em vez de quebrar a página inteira.
+async function lerConfig() {
   try {
-    const config = await import("./config.js");
-    return config.TMDB_TOKEN ?? "";
+    return await import("./config.js");
   } catch {
-    return "";
+    return {};
   }
 }
 
+// ---------------------------------------------------------------
+// Conta (Supabase)
+// ---------------------------------------------------------------
+
+// Redesenha o que depende das marcações (elas mudaram ao entrar ou sair).
+function redesenharMarcacoes() {
+  atualizarContadores(assistidos.contagem());
+  if (estado.aba !== "catalogo") abrirLista(estado.aba);
+  else if (estado.termo) carregarFilmes({ acrescentar: false });
+  else aplicarFiltro();
+}
+
+// A conta não respondeu: as marcações seguem só neste navegador.
+function avisarSemConta() {
+  mostrarMensagemRapida("Não deu para salvar na sua conta agora. Suas marcações seguem guardadas neste navegador.");
+}
+
+// Liga o botão "Entrar" e a sincronização das marcações. Sem o Supabase
+// configurado (ou fora do ar), o site segue só com o navegador.
+async function ligarConta({ SUPABASE_URL, SUPABASE_KEY }) {
+  if (!SUPABASE_URL || !SUPABASE_KEY) return;
+  let conta, tela;
+  try {
+    const [{ criarConta }, { configurarTelaConta }] = await Promise.all([
+      import("./conta.js"),
+      import("./conta-tela.js"),
+    ]);
+    conta = criarConta({ url: SUPABASE_URL, chave: SUPABASE_KEY });
+    tela = configurarTelaConta(conta);
+  } catch {
+    return; // a biblioteca do Supabase não carregou
+  }
+  const sincronia = criarSincronia({ conta, assistidos, aoFalhar: () => avisarSemConta() });
+  window.addEventListener("online", () => sincronia.tentarDeNovo());
+
+  let dentro = false;
+  conta.aoMudarSessao(async (usuario) => {
+    tela.atualizar(usuario);
+    const antes = JSON.stringify(assistidos.lista());
+    if (usuario) {
+      dentro = true;
+      try {
+        await sincronia.aoEntrar();
+      } catch {
+        // As marcações do navegador continuam valendo (e não se perdem ao sair).
+        avisarSemConta();
+      }
+    } else if (dentro) {
+      // Só ao sair de verdade (quem nunca entrou guarda as do navegador).
+      dentro = false;
+      sincronia.aoSair();
+    }
+    if (JSON.stringify(assistidos.lista()) !== antes) redesenharMarcacoes();
+  });
+}
+
 async function iniciar() {
-  const TMDB_TOKEN = await lerToken();
+  const config = await lerConfig();
+  const TMDB_TOKEN = config.TMDB_TOKEN ?? "";
   // Sem token configurado, nem tenta chamar a TMDB.
   if (!TMDB_TOKEN || TMDB_TOKEN.trim() === TOKEN_MODELO) {
     mostrarErro({ tipo: "auth" });
@@ -512,6 +571,7 @@ async function iniciar() {
     });
     seguirRota(); // quem abriu o site já num link de filme
     mostrarDicaDoCelular();
+    ligarConta(config);
   } catch (erro) {
     mostrarErro(erro, iniciar);
   }

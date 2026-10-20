@@ -97,7 +97,7 @@ button {
   top: 0;
   z-index: 20;
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto 1fr auto auto;
   align-items: center;
   gap: 12px 32px;
   padding: 14px var(--margem);
@@ -1110,10 +1110,199 @@ button {
   color: var(--penumbra);
 }
 
+/* ---------- Conta ---------- */
+.botao-conta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border: 1px solid var(--linha);
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.07);
+  color: var(--texto);
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+.botao-conta:hover {
+  border-color: var(--tungstenio);
+}
+.botao-conta:has(.botao-conta-inicial) {
+  padding: 4px 14px 4px 4px;
+}
+.botao-conta-inicial {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--tungstenio);
+  color: var(--sala);
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.janela {
+  width: min(400px, calc(100% - 32px));
+  padding: 28px;
+  border: 1px solid var(--linha);
+  border-radius: 18px;
+  background: var(--veludo);
+  color: var(--texto);
+  box-shadow: 0 24px 60px rgb(0 0 0 / 0.7);
+}
+.janela::backdrop {
+  background: rgb(0 0 0 / 0.7);
+  backdrop-filter: blur(4px);
+}
+.janela-fechar {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--penumbra);
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.janela-fechar:hover {
+  color: var(--texto);
+  background: var(--veludo-claro);
+}
+.janela-titulo {
+  margin: 0 0 6px;
+  font-family: var(--fonte-titulo);
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1.05;
+  text-transform: uppercase;
+}
+.janela-texto {
+  margin: 0 0 18px;
+  color: var(--penumbra);
+}
+.janela-email {
+  margin: 0 0 14px;
+  color: var(--penumbra);
+  font-size: 0.9rem;
+}
+.janela-abas {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 18px;
+  border-bottom: 1px solid var(--linha);
+}
+.janela-abas button {
+  padding: 8px 12px;
+  border: 0;
+  background: none;
+  color: var(--penumbra);
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: inset 0 -2px 0 transparent;
+}
+.janela-abas button[aria-selected="true"] {
+  color: var(--texto);
+  box-shadow: inset 0 -2px 0 var(--tungstenio);
+}
+.form-conta {
+  display: grid;
+  gap: 14px;
+}
+.form-conta label:not(.caixa) {
+  display: grid;
+  gap: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--penumbra);
+}
+.form-conta input:not([type="checkbox"]) {
+  padding: 11px 14px;
+  border: 1px solid var(--linha);
+  border-radius: 10px;
+  background: rgb(0 0 0 / 0.4);
+  color: var(--texto);
+  font: inherit;
+}
+.form-conta input:focus {
+  outline: none;
+  border-color: var(--tungstenio);
+}
+.caixa {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 18px;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.form-conta .caixa {
+  margin-bottom: 0;
+}
+.caixa input {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  margin: 1px 0 0;
+  accent-color: var(--tungstenio);
+}
+.letra-miuda {
+  margin: 0;
+  color: var(--penumbra);
+  font-size: 0.8rem;
+}
+.form-erro {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgb(255 77 87 / 0.12);
+  color: var(--sinal);
+  font-size: 0.9rem;
+}
+.botao-principal,
+.botao-secundario {
+  width: 100%;
+  padding: 12px;
+  border-radius: 999px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.botao-principal {
+  border: 0;
+  background: var(--tungstenio);
+  color: var(--sala);
+}
+.botao-principal:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+.botao-secundario {
+  border: 1px solid var(--linha);
+  background: none;
+  color: var(--texto);
+}
+.botao-secundario:hover {
+  border-color: var(--sinal);
+  color: var(--sinal);
+}
+
 /* ---------- Celular ---------- */
 @media (max-width: 760px) {
   .cabecalho {
-    grid-template-columns: 1fr auto;
+    grid-template-columns: 1fr auto auto;
+    column-gap: 10px;
+  }
+  /* No celular, a conta mostra só a inicial. */
+  .botao-conta-nome {
+    display: none;
+  }
+  .botao-conta:has(.botao-conta-inicial) {
+    padding: 4px;
   }
   .abas {
     grid-column: 1 / -1;

@@ -1,10 +1,11 @@
 // assistidos.js — o que você marcou em cada filme, guardado no navegador
-// (localStorage): sobrevive a fechar a página, mas não passa para outro
-// navegador ou computador.
+// (localStorage): sobrevive a fechar a página. Com a conta aberta, o
+// nuvem.js também leva cada mudança para o Supabase.
 //
 // Cada filme marcado tem duas informações independentes:
 // - avaliacao: "gostei" (✓), "nao" (✗) ou null
 // - status:    "quero" (Quero assistir), "assisti" (Já assisti) ou null
+// E quando entrou em "Já assisti" (assistidoEm), para o ranking do mês.
 
 const CHAVE = "catalogo-filmes:assistidos";
 
@@ -48,6 +49,8 @@ export function criarAssistidos(armazenamento = globalThis.localStorage, relogio
   // apagar o que ela marcou.
   let textoConhecido = lerTexto(armazenamento);
   let lista = converter(textoConhecido);
+  // Quem quer saber de cada mudança (o nuvem.js, com a conta aberta).
+  let avisar = () => {};
 
   function atualizarDeOutraAba() {
     const texto = lerTexto(armazenamento);
@@ -72,16 +75,25 @@ export function criarAssistidos(armazenamento = globalThis.localStorage, relogio
   function alterar(filme, mudanca) {
     atualizarDeOutraAba();
     const atual = achar(filme.id) ?? { id: filme.id, avaliacao: null, status: null };
+    const agora = relogio();
+    const mudou = mudanca(atual);
     const novo = {
       ...atual,
-      ...mudanca(atual),
+      ...mudou,
       generos: filme.genre_ids ?? atual.generos ?? [],
       filme: resumir(filme),
-      quando: relogio(),
+      quando: agora,
     };
+    // A data de "assisti" só nasce quando o filme entra em "Já assisti" (dar
+    // ✓ depois não muda) e some quando ele sai. O Desfazer traz a original.
+    if (!("assistidoEm" in mudou)) {
+      const jaEstava = atual.status === "assisti";
+      novo.assistidoEm = novo.status !== "assisti" ? null : jaEstava ? (atual.assistidoEm ?? null) : agora;
+    }
     lista = lista.filter((f) => f.id !== filme.id);
     if (novo.avaliacao || novo.status) lista.push(novo);
     salvar();
+    avisar(novo);
   }
 
   const avaliacao = (idFilme) => achar(idFilme)?.avaliacao ?? null;
@@ -142,7 +154,11 @@ export function criarAssistidos(armazenamento = globalThis.localStorage, relogio
     foraDoCarrossel: marcado,
 
     // Foto das marcações de um filme, para o "Desfazer" poder voltar atrás.
-    estado: (idFilme) => ({ avaliacao: avaliacao(idFilme), status: status(idFilme) }),
+    estado: (idFilme) => ({
+      avaliacao: avaliacao(idFilme),
+      status: status(idFilme),
+      assistidoEm: achar(idFilme)?.assistidoEm ?? null,
+    }),
     restaurar(filme, estadoAnterior) {
       alterar(filme, () => estadoAnterior);
     },
@@ -154,6 +170,25 @@ export function criarAssistidos(armazenamento = globalThis.localStorage, relogio
       const marcado = achar(filme.id);
       if (!marcado) return;
       marcado.filme = resumir(filme);
+      salvar();
+      avisar(marcado);
+    },
+
+    // aoMudar(item) é chamado depois de cada marcação (item sem avaliação
+    // nem status = o filme foi desmarcado).
+    aoAlterar(aoMudar) {
+      avisar = aoMudar;
+    },
+
+    // Troca todas as marcações de uma vez (as da conta, ao entrar).
+    substituir(novaLista) {
+      lista = novaLista.filter((f) => valido(f) && (f.avaliacao || f.status));
+      salvar();
+    },
+
+    // Apaga as marcações do navegador (ao sair da conta: elas ficam na nuvem).
+    esquecer() {
+      lista = [];
       salvar();
     },
   };

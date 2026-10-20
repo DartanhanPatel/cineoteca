@@ -27,7 +27,13 @@ No computador, passe o mouse num pôster. No celular, segure o dedo no pôster p
 - Na **busca** e nas **abas**, o filme marcado continua aparecendo, com o ✓ visível.
 - As abas **"Quero assistir"** e **"Já assisti"** mostram seus filmes, do mais recente para o mais antigo, com os logos de onde assistir. Desmarcar um filme dentro da aba tira ele da lista na hora (com "Desfazer").
 - A aba **"Ocultos"** não aparece na barra do topo. Para ver os filmes com ✗, abra o endereço do site com `?aba=ocultos` no fim (por exemplo, `http://localhost:3000/?aba=ocultos`). Clique no ✗ de um filme ali para trazê-lo de volta: como ✗ conta como "assisti e não gostei", ele vai para "Já assisti".
-- As marcações ficam guardadas **no seu navegador**: continuam lá quando você fecha o site, mas não passam para outro computador ou navegador.
+- As marcações ficam guardadas **no seu navegador**. Com a conta aberta (veja abaixo), elas também ficam **na conta** e aparecem em qualquer computador.
+
+### Conta
+- O botão **Entrar**, no canto do cabeçalho, cria a conta (nome, e-mail e senha) ou entra numa conta existente.
+- Ao entrar, as marcações feitas antes no navegador **sobem para a conta**, juntando-se às que já estavam lá (em cada filme, vale a marcação mais recente).
+- Ao sair, as marcações saem da tela (continuam na conta). Se alguma não conseguiu chegar à conta (sem internet, por exemplo), ela fica no navegador e sobe na próxima vez que você entrar.
+- Ofertas: no cadastro há uma caixinha (desmarcada) para receber novidades e ofertas. Dá para mudar depois clicando no seu nome. A data do aceite fica guardada (LGPD). A [política de privacidade](privacidade.html) explica o que é guardado.
 
 ### Recomendações
 O destaque no topo é um carrossel com 4 filmes que troca a cada 5 segundos (pausa com o mouse em cima). As cores do filme em destaque se espalham pelo fundo da página.
@@ -61,7 +67,16 @@ A aba e o filme abertos ficam no endereço, por exemplo `?aba=quero#/filme/603`.
 
 O arquivo `js/config.js` está no `.gitignore`, então o seu token **não** vai para o GitHub.
 
-### 3. Rode o site
+### 3. Configure o Supabase (para as contas)
+
+Sem este passo o site funciona normalmente, só sem o botão "Entrar".
+
+1. Crie um projeto grátis em [supabase.com](https://supabase.com).
+2. Em **Settings → API Keys**, copie a chave **Publishable** (`sb_publishable_...`). Em **Data API**, copie o **Project URL**. Cole os dois no `js/config.js` (veja o `js/config.example.js`). **Nunca** use a chave `secret`/`service_role` no site.
+3. Em **SQL Editor → New query**, cole o arquivo `supabase/01-contas.sql` inteiro e clique em **Run**.
+4. Para testar à vontade: em **Authentication → Sign In / Providers → Email**, desligue **Confirm email** (o e-mail grátis do Supabase só manda uns 2 por hora). Religue antes de abrir o site ao público.
+
+### 4. Rode o site
 
 O site precisa de um servidor local. **Abrir o `index.html` com duplo clique não funciona**, porque o navegador bloqueia os módulos JavaScript (`import`/`export`) quando o arquivo é aberto direto do disco.
 
@@ -80,7 +95,7 @@ Depois abra o endereço que aparecer, normalmente http://localhost:3000.
 
 O site precisa de internet: os filmes vêm da TMDB, os trailers do YouTube e as fontes do Google Fonts (sem elas, o site usa as fontes do sistema).
 
-### 4. Rode os testes
+### 5. Rode os testes
 
 Precisa do Node 18 ou mais recente; não há nada para instalar:
 
@@ -101,6 +116,11 @@ npm test
 | `js/ui.js` | Desenha a página principal; não acessa a internet |
 | `js/detalhe.js` | Desenha a página do filme (trailer, elenco, onde assistir) |
 | `js/app.js` | O "maestro": guarda o estado e liga cliques → api → tela |
+| `js/conta.js` | Conversa com o Supabase: criar conta, entrar, sair, perfil e marcações |
+| `js/conta-tela.js` | O botão da conta e a janela de entrar / criar conta |
+| `js/nuvem.js` | Junta as marcações do navegador com as da conta e leva cada mudança para lá |
+| `supabase/` | O SQL que cria as tabelas e as regras de segurança no Supabase |
+| `privacidade.html` | A política de privacidade |
 | `js/config.js` | O seu token (não vai para o git) |
 | `tests/` | Testes automáticos (`npm test`) |
 | `docs/` | O planejamento da primeira versão (design e plano de implementação) |
@@ -109,7 +129,7 @@ npm test
 
 - **O botão "Assistir" abre a página do filme na TMDB**, e não direto na Netflix ou no Prime Video: a TMDB não fornece o link direto. De lá, um clique leva ao streaming.
 - **Alguns trailers não tocam dentro do site** (o dono do vídeo bloqueou). Nesse caso, a imagem do filme fica no lugar.
-- **As marcações não passam de um navegador para outro** (ficam guardadas só no navegador onde foram feitas).
+- **Sem conta, as marcações não passam de um navegador para outro** (ficam guardadas só no navegador onde foram feitas).
 
 ## Checklist de teste manual
 

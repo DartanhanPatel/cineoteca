@@ -60,6 +60,9 @@
         />
         <button id="limpar-busca" class="limpar-busca" aria-label="Limpar busca" hidden>×</button>
       </div>
+
+      <!-- Só aparece com o Supabase configurado (js/config.js). -->
+      <button id="botao-conta" class="botao-conta" hidden>Entrar</button>
     </header>
 
     <section id="destaque" class="destaque" aria-label="Filmes em destaque" hidden></section>
@@ -81,7 +84,68 @@
       <img src="img/tmdb.svg" alt="The Movie Database (TMDB)" class="logo-tmdb" />
       <p>Dados de streaming fornecidos por JustWatch.</p>
       <p>Este produto usa a API da TMDB, mas não é endossado ou certificado pela TMDB.</p>
+      <p><a href="privacidade.html">Política de privacidade</a></p>
     </footer>
+
+    <!-- Janela da conta: entrar, criar conta e "Sua conta". -->
+    <dialog id="janela-conta" class="janela" aria-label="Sua conta">
+      <button class="janela-fechar" data-fechar aria-label="Fechar">×</button>
+
+      <div data-parte="fora">
+        <h2 class="janela-titulo">Sua conta</h2>
+        <p class="janela-texto">Guarde suas marcações e dispute com os amigos.</p>
+        <div class="janela-abas" role="tablist">
+          <button role="tab" data-modo="entrar" aria-selected="true">Entrar</button>
+          <button role="tab" data-modo="cadastrar" aria-selected="false">Criar conta</button>
+        </div>
+        <form id="form-conta" class="form-conta" novalidate>
+          <label data-so="cadastrar" hidden>
+            Nome
+            <input name="nome" autocomplete="name" maxlength="60" />
+          </label>
+          <label>
+            E-mail
+            <input name="email" type="email" autocomplete="email" />
+          </label>
+          <label>
+            Senha
+            <input name="senha" type="password" autocomplete="current-password" />
+          </label>
+          <label class="caixa" data-so="cadastrar" hidden>
+            <input type="checkbox" name="ofertas" />
+            Quero receber novidades e ofertas da Cineoteca por e-mail
+          </label>
+          <p class="letra-miuda" data-so="cadastrar" hidden>
+            Ao criar a conta, você concorda com a
+            <a href="privacidade.html" target="_blank">Política de privacidade</a>.
+          </p>
+          <p class="form-erro" role="alert" hidden></p>
+          <button class="botao-principal" type="submit">Entrar</button>
+        </form>
+      </div>
+
+      <div data-parte="confirmar" hidden>
+        <h2 class="janela-titulo">Quase lá!</h2>
+        <p class="janela-texto">
+          Enviamos um link para <strong data-campo="email-confirmar"></strong>. Abra o e-mail e
+          clique no link para ativar a conta.
+        </p>
+        <button class="botao-principal" data-fechar>Entendi</button>
+      </div>
+
+      <div data-parte="dentro" hidden>
+        <h2 class="janela-titulo">Olá, <span data-campo="nome"></span>!</h2>
+        <p class="janela-email" data-campo="email"></p>
+        <p class="janela-texto">
+          Suas marcações ficam salvas na conta e aparecem em qualquer computador.
+        </p>
+        <label class="caixa">
+          <input type="checkbox" id="ofertas-conta" />
+          Receber novidades e ofertas da Cineoteca por e-mail
+        </label>
+        <button id="sair-conta" class="botao-secundario">Sair da conta</button>
+      </div>
+    </dialog>
 
     <!-- Página do filme: abre por cima de tudo (endereço #/filme/ID). -->
     <div

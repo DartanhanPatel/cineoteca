@@ -191,7 +191,7 @@ test("restaurar volta o filme exatamente como estava (para o Desfazer)", () => {
   const antes = assistidos.estado(1);
   assistidos.avaliar(filme(1), "gostei"); // vira gostei + já assisti
   assistidos.restaurar(filme(1), antes);
-  assert.deepEqual(assistidos.estado(1), { avaliacao: null, status: "quero" });
+  assert.deepEqual(assistidos.estado(1), { avaliacao: null, status: "quero", assistidoEm: null });
 
   const vazio = assistidos.estado(2);
   assistidos.avaliar(filme(2), "nao");
@@ -216,4 +216,51 @@ test("daLista('ocultos') traz só os filmes com ✗, mais recentes primeiro", ()
   assistidos.avaliar(filme(3), "nao"); // tirar o ✗ traz o filme de volta
   assert.deepEqual(assistidos.daLista("ocultos").map((f) => f.id), [1]);
   assert.equal(assistidos.contagem().ocultos, 1);
+});
+
+test("guarda quando o filme foi assistido (para o ranking do mês)", () => {
+  let agora = 100;
+  const assistidos = criarAssistidos(armazenamentoFalso(), () => agora);
+  assistidos.marcarStatus(filme(1), "quero");
+  assert.equal(assistidos.estado(1).assistidoEm, null);
+
+  agora = 200;
+  assistidos.marcarStatus(filme(1), "assisti");
+  assert.equal(assistidos.estado(1).assistidoEm, 200);
+
+  // dar ✓ depois não muda a data em que assistiu
+  agora = 300;
+  assistidos.avaliar(filme(1), "gostei");
+  assert.equal(assistidos.estado(1).assistidoEm, 200);
+
+  // tirar de "Já assisti" apaga a data; o Desfazer devolve a original
+  const antes = assistidos.estado(1);
+  assistidos.marcarStatus(filme(1), "assisti");
+  assert.equal(assistidos.estado(1).assistidoEm, null);
+  agora = 400;
+  assistidos.restaurar(filme(1), antes);
+  assert.equal(assistidos.estado(1).assistidoEm, 200);
+});
+
+test("avisa cada mudança, inclusive quando o filme fica sem marca", () => {
+  const avisos = [];
+  const assistidos = criarAssistidos(armazenamentoFalso(), () => 5);
+  assistidos.aoAlterar((item) => avisos.push([item.id, item.status]));
+  assistidos.marcarStatus(filme(1), "quero");
+  assistidos.marcarStatus(filme(1), "quero");
+  assert.deepEqual(avisos, [
+    [1, "quero"],
+    [1, null],
+  ]);
+});
+
+test("substituir troca a lista inteira e esquecer apaga tudo", () => {
+  const armazenamento = armazenamentoFalso();
+  const assistidos = criarAssistidos(armazenamento);
+  assistidos.substituir([{ id: 9, avaliacao: null, status: "quero", generos: [], filme: filme(9), quando: 1 }]);
+  assert.equal(assistidos.status(9), "quero");
+  assert.equal(criarAssistidos(armazenamento).status(9), "quero"); // ficou salvo
+  assistidos.esquecer();
+  assert.deepEqual(assistidos.lista(), []);
+  assert.deepEqual(criarAssistidos(armazenamento).lista(), []);
 });

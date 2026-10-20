@@ -722,6 +722,11 @@ export function mostrarDicaDoCelular() {
   mostrarAviso("Segure o dedo num pôster para marcar o filme.", "Entendi", () => {}, 8000);
 }
 
+// Um recado rápido no rodapé da tela (com mais tempo para ler).
+export function mostrarMensagemRapida(texto) {
+  mostrarAviso(texto, "OK", () => {}, 8000);
+}
+
 // Tira da grade o card de um filme (usado quando o "Desfazer" devolve a
 // vaga de um filme que tinha entrado como substituto).
 export function removerCard(idFilme) {
