@@ -120,6 +120,45 @@ test("armazenamento quebrado ou bloqueado não derruba o site", () => {
   assert.deepEqual(criarAssistidos(undefined).lista(), []);
 });
 
+test("duas abas do site abertas: uma não apaga as marcações da outra", () => {
+  const armazenamento = armazenamentoFalso();
+  const abaAntiga = criarAssistidos(armazenamento);
+  const abaNova = criarAssistidos(armazenamento);
+  abaNova.marcarStatus(filme(1), "quero");
+  abaAntiga.marcarStatus(filme(2), "quero");
+  const salvos = criarAssistidos(armazenamento);
+  assert.equal(salvos.status(1), "quero");
+  assert.equal(salvos.status(2), "quero");
+  // A aba antiga também passa a enxergar o que a nova marcou.
+  assert.equal(abaAntiga.status(1), "quero");
+});
+
+test("se não der para salvar, as marcações continuam valendo até fechar a página", () => {
+  const salvo = JSON.stringify([{ id: 1, avaliacao: null, status: "quero" }]);
+  const cheio = {
+    getItem: () => salvo,
+    setItem: () => {
+      throw new Error("armazenamento cheio");
+    },
+  };
+  const assistidos = criarAssistidos(cheio);
+  assistidos.marcarStatus(filme(2), "quero");
+  assistidos.marcarStatus(filme(3), "quero");
+  assert.deepEqual(assistidos.lista().map((f) => f.id), [1, 2, 3]);
+});
+
+test("um item estragado no armazenamento não apaga as outras marcações", () => {
+  const estragado = JSON.stringify([
+    { id: 5, avaliacao: "gostei", status: "assisti" },
+    null,
+    "lixo",
+    { semId: true },
+    { id: 6, avaliacao: null, status: "quero" },
+  ]);
+  const assistidos = criarAssistidos(armazenamentoFalso(estragado));
+  assert.deepEqual(assistidos.lista().map((f) => f.id), [5, 6]);
+});
+
 test("generosFavoritos: ✓ +2, só 'Já assisti' +1, ✗ −2, 'Quero assistir' 0; só positivos, até 3", () => {
   const lista = [
     { id: 1, generos: [28, 12], avaliacao: "gostei", status: "assisti" },

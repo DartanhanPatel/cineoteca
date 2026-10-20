@@ -43,11 +43,24 @@ function resumir(filme) {
 // a lista funciona normalmente até fechar a página, só não fica salva.
 // `relogio` diz "quando" cada marcação aconteceu (nos testes, um falso).
 export function criarAssistidos(armazenamento = globalThis.localStorage, relogio = Date.now) {
-  let lista = ler(armazenamento);
+  // O texto guardado da última vez que lemos ou salvamos. Se ele mudar, foi
+  // outra aba do site que salvou: antes de alterar, lemos de novo, para não
+  // apagar o que ela marcou.
+  let textoConhecido = lerTexto(armazenamento);
+  let lista = converter(textoConhecido);
+
+  function atualizarDeOutraAba() {
+    const texto = lerTexto(armazenamento);
+    if (texto === textoConhecido) return; // ninguém mexeu (ou não deu para salvar)
+    textoConhecido = texto;
+    lista = converter(texto);
+  }
 
   function salvar() {
     try {
-      armazenamento?.setItem(CHAVE, JSON.stringify(lista));
+      const texto = JSON.stringify(lista);
+      armazenamento?.setItem(CHAVE, texto);
+      textoConhecido = texto;
     } catch {
       // Sem onde salvar: segue só na memória.
     }
@@ -57,6 +70,7 @@ export function criarAssistidos(armazenamento = globalThis.localStorage, relogio
 
   // Aplica a mudança no filme; se ficar sem nada marcado, sai da lista.
   function alterar(filme, mudanca) {
+    atualizarDeOutraAba();
     const atual = achar(filme.id) ?? { id: filme.id, avaliacao: null, status: null };
     const novo = {
       ...atual,
@@ -136,6 +150,7 @@ export function criarAssistidos(armazenamento = globalThis.localStorage, relogio
     // Marcações da versão anterior não guardavam título e pôster.
     semDados: () => lista.filter((f) => !f.filme).map((f) => f.id),
     guardarDados(filme) {
+      atualizarDeOutraAba();
       const marcado = achar(filme.id);
       if (!marcado) return;
       marcado.filme = resumir(filme);
@@ -151,13 +166,26 @@ function pertenceA(filme, tipo) {
   return filme.status === tipo && filme.avaliacao !== "nao";
 }
 
-function ler(armazenamento) {
+// O texto guardado no navegador, ou null se não houver (ou estiver bloqueado).
+function lerTexto(armazenamento) {
   try {
-    const dados = JSON.parse(armazenamento?.getItem(CHAVE) ?? "[]");
+    return armazenamento?.getItem(CHAVE) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+// Um item que dá para usar: um objeto com o ID do filme.
+const valido = (f) => f !== null && typeof f === "object" && Number.isInteger(f.id);
+
+function converter(texto) {
+  try {
+    const dados = JSON.parse(texto ?? "[]");
     if (!Array.isArray(dados)) return [];
+    // Um item estragado é descartado sozinho, sem levar os outros junto.
     // Marcações das versões anteriores: sem avaliação = ✓ (só existia ele);
     // sem status = "Já assisti" (quem avaliou, assistiu).
-    return dados.map((f) => {
+    return dados.filter(valido).map((f) => {
       const avaliacao = "avaliacao" in f ? f.avaliacao : "gostei";
       const status = "status" in f ? f.status : avaliacao ? "assisti" : null;
       return { ...f, avaliacao, status };
