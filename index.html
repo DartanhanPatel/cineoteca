@@ -44,6 +44,8 @@
         <button class="aba" role="tab" data-aba="assisti" aria-selected="false">
           Já assisti <span class="contador">0</span>
         </button>
+        <!-- Só aparece com a conta aberta. -->
+        <button class="aba" role="tab" data-aba="grupos" aria-selected="false" hidden>Grupos</button>
         <!-- Só aparece quando há filmes marcados com ✗. -->
         <button class="aba aba-ocultos" role="tab" data-aba="ocultos" aria-selected="false" hidden>
           Ocultos <span class="contador">0</span>
@@ -75,6 +77,8 @@
     <main class="conteudo">
       <div id="mensagem" class="mensagem" hidden></div>
       <section id="grade" class="grade" aria-live="polite"></section>
+      <!-- Aba "Grupos": aparece no lugar da grade. -->
+      <section id="grupos" class="grupos" aria-live="polite" hidden></section>
       <button id="carregar-mais" class="carregar-mais" hidden>Carregar mais</button>
     </main>
 
@@ -94,6 +98,8 @@
       <div data-parte="fora">
         <h2 class="janela-titulo">Sua conta</h2>
         <p class="janela-texto">Guarde suas marcações e dispute com os amigos.</p>
+        <!-- Quem chegou por um link de convite. -->
+        <p class="janela-convite" hidden></p>
         <div class="janela-abas" role="tablist">
           <button role="tab" data-modo="entrar" aria-selected="true">Entrar</button>
           <button role="tab" data-modo="cadastrar" aria-selected="false">Criar conta</button>
@@ -143,8 +149,39 @@
           <input type="checkbox" id="ofertas-conta" />
           Receber novidades e ofertas da Cineoteca por e-mail
         </label>
+        <p class="conta-whatsapp" hidden>
+          📲 WhatsApp <strong data-campo="whatsapp"></strong>
+          <button id="remover-whatsapp" class="botao-link">Remover</button>
+        </p>
         <button id="sair-conta" class="botao-secundario">Sair da conta</button>
       </div>
+    </dialog>
+
+    <!-- Pede o WhatsApp ao entrar ou criar o primeiro grupo (uma vez só). -->
+    <dialog id="janela-whatsapp" class="janela" aria-label="Avisos no WhatsApp">
+      <button class="janela-fechar" data-fechar aria-label="Fechar">×</button>
+      <h2 class="janela-titulo">📲 Não perca o desafio da semana!</h2>
+      <p class="janela-texto">
+        Receba os 3 filmes do desafio no WhatsApp toda segunda, e um lembrete antes de a semana acabar.
+        (Os avisos começam em breve.)
+      </p>
+      <form id="form-whatsapp" class="form-conta" novalidate>
+        <label>
+          Seu WhatsApp (com DDD)
+          <input name="numero" type="tel" inputmode="tel" autocomplete="tel-national" placeholder="(11) 98765-4321" />
+        </label>
+        <label class="caixa">
+          <input type="checkbox" name="ofertas" />
+          Também quero receber novidades e ofertas da Cineoteca pelo WhatsApp
+        </label>
+        <p class="letra-miuda">
+          Dá para remover o número quando quiser, clicando no seu nome no topo do site. Veja a
+          <a href="privacidade.html" target="_blank">Política de privacidade</a>.
+        </p>
+        <p class="form-erro" role="alert" hidden></p>
+        <button class="botao-principal" type="submit">Quero receber os avisos</button>
+        <button class="botao-texto" type="button" data-fechar>Agora não</button>
+      </form>
     </dialog>
 
     <!-- Página do filme: abre por cima de tudo (endereço #/filme/ID). -->

@@ -1,5 +1,5 @@
-// conta.js — conversa com o Supabase: criar conta, entrar, sair, o perfil
-// e as marcações guardadas na conta. Não mexe na tela.
+// conta.js — conversa com o Supabase: criar conta, entrar, sair, o perfil,
+// as marcações guardadas na conta e os grupos. Não mexe na tela.
 //
 // O Supabase guarda a sessão no navegador: quem entrou uma vez continua
 // dentro ao voltar ao site.
@@ -14,6 +14,10 @@ const ERROS = [
   [/valid email|invalid format/i, "Esse e-mail não parece válido."],
   [/rate limit|too many/i, "Muitas tentativas seguidas. Espere alguns minutos e tente de novo."],
   [/fetch|network/i, "Sem conexão com o servidor. Confira sua internet."],
+  [/convite inválido/i, "Esse convite não vale mais. Peça um link novo a quem convidou."],
+  [/whatsapp_check/i, "Esse número de WhatsApp não parece válido."],
+  // Tabela ou função que não existe: falta rodar um arquivo da pasta supabase/.
+  [/schema cache/i, "O banco de dados ainda não foi preparado para esta parte do site (falta rodar o SQL no Supabase)."],
 ];
 
 export function traduzirErro(erro) {
@@ -69,12 +73,26 @@ export function criarConta({ url, chave }) {
 
     async perfil() {
       return conferir(
-        await supabase.from("perfis").select("nome, email, aceita_ofertas").eq("id", usuario.id).single()
+        await supabase
+          .from("perfis")
+          .select("nome, email, aceita_ofertas, whatsapp, ofertas_whatsapp")
+          .eq("id", usuario.id)
+          .single()
       );
     },
 
     async definirOfertas(aceita) {
       conferir(await supabase.from("perfis").update({ aceita_ofertas: aceita }).eq("id", usuario.id));
+    },
+
+    // numero: "+55..." ou null (para remover o WhatsApp e os aceites dele).
+    async definirWhatsapp(numero, ofertas = false) {
+      conferir(
+        await supabase
+          .from("perfis")
+          .update({ whatsapp: numero, ofertas_whatsapp: Boolean(numero) && ofertas })
+          .eq("id", usuario.id)
+      );
     },
 
     async buscarMarcacoes() {
@@ -84,6 +102,30 @@ export function criarConta({ url, chave }) {
     async salvarMarcacoes(linhas) {
       const comDono = linhas.map((linha) => ({ ...linha, user_id: usuario.id }));
       conferir(await supabase.from("marcacoes").upsert(comDono, { onConflict: "user_id,filme_id" }));
+    },
+
+    // [{ id, nome, codigo, membros: [{ id, nome }] }]
+    async meusGrupos() {
+      return conferir(await supabase.rpc("meus_grupos"));
+    },
+
+    // → { id, nome, codigo }
+    async criarGrupo(nome) {
+      return conferir(await supabase.rpc("criar_grupo", { nome_grupo: nome }));
+    },
+
+    // → { id, nome }
+    async entrarNoGrupo(codigo) {
+      return conferir(await supabase.rpc("entrar_no_grupo", { codigo_convite: codigo }));
+    },
+
+    async sairDoGrupo(idGrupo) {
+      conferir(await supabase.rpc("sair_do_grupo", { id_grupo: idGrupo }));
+    },
+
+    // Funciona sem conta. → { nome, membros } ou null (convite inválido).
+    async verConvite(codigo) {
+      return conferir(await supabase.rpc("ver_convite", { codigo_convite: codigo }));
     },
   };
 }

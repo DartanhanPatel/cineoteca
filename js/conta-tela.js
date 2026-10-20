@@ -1,6 +1,7 @@
 // conta-tela.js — o botão da conta no cabeçalho e a janela de entrar,
 // criar conta e "Sua conta". Quem fala com o Supabase é o conta.js.
 import { traduzirErro } from "./conta.js";
+import { formatarWhatsapp } from "./grupos.js";
 
 const $ = (seletor, dentro = document) => dentro.querySelector(seletor);
 
@@ -20,6 +21,8 @@ export function configurarTelaConta(conta) {
   const erro = $(".form-erro", form);
   const enviar = $('button[type="submit"]', form);
   const caixaOfertas = $("#ofertas-conta", janela);
+  const linhaWhatsapp = $(".conta-whatsapp", janela);
+  const avisoConvite = $(".janela-convite", janela);
   let modo = "entrar"; // "entrar" ou "cadastrar"
 
   // Mostra uma das partes da janela: "fora", "confirmar" ou "dentro".
@@ -86,24 +89,44 @@ export function configurarTelaConta(conta) {
   }
 
   // Abre a janela: com a conta aberta, mostra "Sua conta".
-  async function abrir() {
+  // convite: texto sobre o grupo, para quem chegou por um link de convite.
+  async function abrir({ convite = "" } = {}) {
     const usuario = conta.usuario();
     if (usuario) {
       $("[data-campo='nome']", janela).textContent = primeiroNome(usuario);
       $("[data-campo='email']", janela).textContent = usuario.email;
       caixaOfertas.disabled = true;
+      linhaWhatsapp.hidden = true;
       mostrarParte("dentro");
-      janela.showModal();
+      if (!janela.open) janela.showModal();
       try {
-        caixaOfertas.checked = (await conta.perfil()).aceita_ofertas;
+        const perfil = await conta.perfil();
+        caixaOfertas.checked = perfil.aceita_ofertas;
         caixaOfertas.disabled = false;
+        if (perfil.whatsapp) {
+          $("[data-campo='whatsapp']", janela).textContent = formatarWhatsapp(perfil.whatsapp);
+          linhaWhatsapp.hidden = false;
+        }
       } catch {
         // Sem o perfil (sem internet): a caixa fica desligada.
       }
     } else {
-      trocarModo(modo);
+      avisoConvite.textContent = convite;
+      avisoConvite.hidden = !convite;
+      trocarModo(convite ? "cadastrar" : modo);
       mostrarParte("fora");
-      janela.showModal();
+      if (!janela.open) janela.showModal();
+    }
+  }
+
+  // Tira o WhatsApp da conta (e os aceites dele).
+  async function aoRemoverWhatsapp() {
+    if (!confirm("Remover seu WhatsApp? Você deixa de receber os avisos e ofertas por lá.")) return;
+    try {
+      await conta.definirWhatsapp(null);
+      linhaWhatsapp.hidden = true;
+    } catch (e) {
+      alert(traduzirErro(e));
     }
   }
 
@@ -129,7 +152,8 @@ export function configurarTelaConta(conta) {
   }
 
   botao.hidden = false;
-  botao.onclick = abrir;
+  botao.onclick = () => abrir();
+  $("#remover-whatsapp", janela).onclick = aoRemoverWhatsapp;
   form.addEventListener("submit", aoEnviar);
   for (const aba of janela.querySelectorAll("[data-modo]")) aba.onclick = () => trocarModo(aba.dataset.modo);
   for (const fechar of janela.querySelectorAll("[data-fechar]")) fechar.onclick = () => janela.close();
@@ -141,6 +165,8 @@ export function configurarTelaConta(conta) {
   $("#sair-conta", janela).onclick = aoSair;
 
   return {
+    abrir,
+
     // Atualiza o botão do cabeçalho (usuario = null: ninguém dentro).
     atualizar(usuario) {
       botao.replaceChildren();

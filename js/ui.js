@@ -46,12 +46,12 @@ export function lerRota(hash) {
 }
 
 // A aba aberta fica no endereço (?aba=quero), para o F5 reabrir nela.
-const ABAS_DE_LISTA = ["quero", "assisti", "ocultos"];
+const ABAS = ["quero", "assisti", "ocultos", "grupos"];
 
 // "?aba=quero" → "quero". Sem aba (ou aba desconhecida) → "catalogo".
 export function lerAba(busca) {
   const aba = new URLSearchParams(busca ?? "").get("aba");
-  return ABAS_DE_LISTA.includes(aba) ? aba : "catalogo";
+  return ABAS.includes(aba) ? aba : "catalogo";
 }
 
 // Monta o endereço com a aba, mantendo o resto (incluindo #/filme/ID).
@@ -180,6 +180,11 @@ export function atualizarContadores({ quero, assisti, ocultos }) {
   const abaOcultos = $('.aba[data-aba="ocultos"]');
   abaOcultos.querySelector(".contador").textContent = ocultos;
   abaOcultos.hidden = abaOcultos.getAttribute("aria-selected") !== "true";
+}
+
+// A aba "Grupos" só aparece com a conta aberta.
+export function mostrarAbaGrupos(visivel) {
+  $('.aba[data-aba="grupos"]').hidden = !visivel;
 }
 
 // Durante a busca, os logos de filtro ficam apagados e sem clique.

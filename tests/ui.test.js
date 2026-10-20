@@ -42,6 +42,7 @@ test("lerAba lê a aba do endereço (?aba=...)", () => {
   assert.equal(lerAba("?aba=quero"), "quero");
   assert.equal(lerAba("?aba=assisti"), "assisti");
   assert.equal(lerAba("?aba=ocultos"), "ocultos");
+  assert.equal(lerAba("?aba=grupos"), "grupos");
   assert.equal(lerAba("?aba=qualquer"), "catalogo");
   assert.equal(lerAba(""), "catalogo");
 });

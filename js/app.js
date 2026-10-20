@@ -15,6 +15,7 @@ import { renderizarDetalhe, mostrarDetalheCarregando, mostrarErroDetalhe, fechar
 import { criarAssistidos, generosFavoritos } from "./assistidos.js";
 import { criarFila } from "./fila.js";
 import { criarSincronia } from "./nuvem.js";
+import { lerConvite, enderecoSemConvite } from "./grupos.js";
 import {
   renderizarProvedores,
   renderizarFilmes,
@@ -40,6 +41,7 @@ import {
   mostrarErro,
   mostrarDicaDoCelular,
   mostrarMensagemRapida,
+  mostrarAbaGrupos,
 } from "./ui.js";
 
 // Valor que vem no config.example.js: significa "token ainda não configurado".
@@ -366,6 +368,7 @@ function lembrarAba(aba) {
 // Troca de aba. A busca é limpa (ela pertence ao catálogo).
 function aoTrocarAba(aba) {
   if (aba === estado.aba && aba === "catalogo" && estado.termo === "") return;
+  if (aba !== "grupos") telaGrupos?.fechar();
   estado.aba = aba;
   marcarAba(aba);
   lembrarAba(aba);
@@ -378,6 +381,8 @@ function aoTrocarAba(aba) {
     mostrarFiltro(true);
     definirFiltroAtivo(true);
     aplicarFiltro();
+  } else if (aba === "grupos") {
+    abrirGrupos();
   } else {
     abrirLista(aba);
   }
@@ -402,6 +407,7 @@ function aoDigitar(texto) {
 
     // Buscar numa aba de lista leva de volta ao catálogo.
     if (novoTermo && estado.aba !== "catalogo") {
+      telaGrupos?.fechar();
       estado.aba = "catalogo";
       marcarAba("catalogo");
       lembrarAba("catalogo");
@@ -479,9 +485,56 @@ async function lerConfig() {
 // Conta (Supabase)
 // ---------------------------------------------------------------
 
+// A aba "Grupos" (criada quando a conta liga; null sem Supabase).
+let telaGrupos = null;
+
+// Mostra a aba "Grupos" no lugar da grade de filmes.
+function abrirGrupos() {
+  ++ultimaBusca; // descarta respostas pendentes do catálogo
+  trocarFila(null);
+  esconderCarrossel();
+  mostrarFiltro(false);
+  atualizarBotaoMais({ visivel: false, carregando: false });
+  if (telaGrupos) telaGrupos.abrir();
+  else mostrarVazio("Carregando seus grupos…"); // a conta ainda está ligando
+}
+
+// Convite (?convite=CÓDIGO): sai do endereço e fica guardado até a pessoa
+// entrar na conta (também se ela recarregar a página antes).
+const CHAVE_CONVITE = "catalogo-filmes:convite";
+let convitePendente = null;
+
+function lerConvitePendente() {
+  const codigo = lerConvite(location.search);
+  if (codigo) {
+    history.replaceState(history.state, "", enderecoSemConvite(location));
+    try {
+      sessionStorage.setItem(CHAVE_CONVITE, codigo);
+    } catch {
+      // Sem onde guardar: vale só até fechar a página.
+    }
+    return codigo;
+  }
+  try {
+    return sessionStorage.getItem(CHAVE_CONVITE);
+  } catch {
+    return null;
+  }
+}
+
+function esquecerConvite() {
+  convitePendente = null;
+  try {
+    sessionStorage.removeItem(CHAVE_CONVITE);
+  } catch {
+    // nada guardado
+  }
+}
+
 // Redesenha o que depende das marcações (elas mudaram ao entrar ou sair).
 function redesenharMarcacoes() {
   atualizarContadores(assistidos.contagem());
+  if (estado.aba === "grupos") return; // os grupos não mostram filmes
   if (estado.aba !== "catalogo") abrirLista(estado.aba);
   else if (estado.termo) carregarFilmes({ acrescentar: false });
   else aplicarFiltro();
@@ -495,17 +548,55 @@ function avisarSemConta() {
 // Liga o botão "Entrar" e a sincronização das marcações. Sem o Supabase
 // configurado (ou fora do ar), o site segue só com o navegador.
 async function ligarConta({ SUPABASE_URL, SUPABASE_KEY }) {
-  if (!SUPABASE_URL || !SUPABASE_KEY) return;
-  let conta, tela;
+  // Sem conta, a aba "Grupos" (aberta por um F5) não tem o que mostrar.
+  const semConta = () => {
+    if (estado.aba === "grupos") aoTrocarAba("catalogo");
+  };
+  if (!SUPABASE_URL || !SUPABASE_KEY) return semConta();
+  let conta, tela, traduzirErro;
   try {
-    const [{ criarConta }, { configurarTelaConta }] = await Promise.all([
+    const [modConta, { configurarTelaConta }, { criarTelaGrupos }] = await Promise.all([
       import("./conta.js"),
       import("./conta-tela.js"),
+      import("./grupos-tela.js"),
     ]);
-    conta = criarConta({ url: SUPABASE_URL, chave: SUPABASE_KEY });
+    traduzirErro = modConta.traduzirErro;
+    conta = modConta.criarConta({ url: SUPABASE_URL, chave: SUPABASE_KEY });
     tela = configurarTelaConta(conta);
+    telaGrupos = criarTelaGrupos(conta, { abrirConta: () => tela.abrir() });
   } catch {
-    return; // a biblioteca do Supabase não carregou
+    return semConta(); // a biblioteca do Supabase não carregou
+  }
+
+  // Com a conta aberta: entra no grupo do convite e mostra os grupos.
+  async function aceitarConvite(codigo) {
+    esquecerConvite();
+    try {
+      const grupo = await conta.entrarNoGrupo(codigo);
+      mostrarMensagemRapida(`Você entrou no grupo "${grupo.nome}"! 🎉`);
+      aoTrocarAba("grupos");
+      telaGrupos.perguntarWhatsapp();
+    } catch (e) {
+      mostrarMensagemRapida(traduzirErro(e));
+    }
+  }
+
+  // Sem conta: abre "Criar conta" contando de que grupo é o convite.
+  async function mostrarConvite(codigo) {
+    let grupo;
+    try {
+      grupo = await conta.verConvite(codigo);
+    } catch {
+      grupo = undefined; // sem internet: convida sem dizer o nome
+    }
+    if (grupo === null) {
+      esquecerConvite();
+      mostrarMensagemRapida("Esse convite não vale mais. Peça um link novo a quem convidou.");
+      return;
+    }
+    const pessoas = grupo?.membros === 1 ? "1 participante" : `${grupo?.membros} participantes`;
+    const sobre = grupo ? `para o grupo "${grupo.nome}" (${pessoas})` : "para um grupo";
+    tela.abrir({ convite: `🎬 Você foi convidado ${sobre}. Crie sua conta ou entre para participar da disputa.` });
   }
   const sincronia = criarSincronia({ conta, assistidos, aoFalhar: () => avisarSemConta() });
   window.addEventListener("online", () => sincronia.tentarDeNovo());
@@ -513,6 +604,7 @@ async function ligarConta({ SUPABASE_URL, SUPABASE_KEY }) {
   let dentro = false;
   conta.aoMudarSessao(async (usuario) => {
     tela.atualizar(usuario);
+    mostrarAbaGrupos(Boolean(usuario));
     const antes = JSON.stringify(assistidos.lista());
     if (usuario) {
       dentro = true;
@@ -528,10 +620,17 @@ async function ligarConta({ SUPABASE_URL, SUPABASE_KEY }) {
       sincronia.aoSair();
     }
     if (JSON.stringify(assistidos.lista()) !== antes) redesenharMarcacoes();
+    if (estado.aba === "grupos") abrirGrupos(); // os grupos (ou o "Entre na sua conta")
+
+    if (convitePendente) {
+      if (usuario) await aceitarConvite(convitePendente);
+      else mostrarConvite(convitePendente);
+    }
   });
 }
 
 async function iniciar() {
+  convitePendente = lerConvitePendente();
   const config = await lerConfig();
   const TMDB_TOKEN = config.TMDB_TOKEN ?? "";
   // Sem token configurado, nem tenta chamar a TMDB.

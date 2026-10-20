@@ -35,6 +35,16 @@ No computador, passe o mouse num pôster. No celular, segure o dedo no pôster p
 - Ao sair, as marcações saem da tela (continuam na conta). Se alguma não conseguiu chegar à conta (sem internet, por exemplo), ela fica no navegador e sobe na próxima vez que você entrar.
 - Ofertas: no cadastro há uma caixinha (desmarcada) para receber novidades e ofertas. Dá para mudar depois clicando no seu nome. A data do aceite fica guardada (LGPD). A [política de privacidade](privacidade.html) explica o que é guardado.
 
+### Grupos
+Com a conta aberta, aparece a aba **Grupos**.
+
+- **Criar grupo:** dê um nome e clique em "Criar grupo". Quem cria já participa.
+- **Convidar:** cada grupo tem um link próprio. "Convidar pelo WhatsApp" abre o WhatsApp com a mensagem pronta; "Copiar link" copia o link para mandar por onde quiser.
+- **Quem abre o link** vê de que grupo é o convite e cria a conta (ou entra). Em seguida entra no grupo sozinho. Quem já está com a conta aberta entra direto.
+- **Sair do grupo:** o último a sair apaga o grupo.
+- **WhatsApp:** ao criar ou entrar num grupo, o site pergunta uma vez se a pessoa quer receber o desafio da semana pelo WhatsApp (os avisos começam em breve), com uma caixinha separada para ofertas. Dá para remover o número clicando no seu nome.
+- Os participantes veem os nomes uns dos outros, mas não o e-mail nem o WhatsApp.
+
 ### Recomendações
 O destaque no topo é um carrossel com 4 filmes que troca a cada 5 segundos (pausa com o mouse em cima). As cores do filme em destaque se espalham pelo fundo da página.
 
@@ -73,7 +83,7 @@ Sem este passo o site funciona normalmente, só sem o botão "Entrar".
 
 1. Crie um projeto grátis em [supabase.com](https://supabase.com).
 2. Em **Settings → API Keys**, copie a chave **Publishable** (`sb_publishable_...`). Em **Data API**, copie o **Project URL**. Cole os dois no `js/config.js` (veja o `js/config.example.js`). **Nunca** use a chave `secret`/`service_role` no site.
-3. Em **SQL Editor → New query**, cole o arquivo `supabase/01-contas.sql` inteiro e clique em **Run**.
+3. Em **SQL Editor → New query**, cole o arquivo `supabase/01-contas.sql` inteiro e clique em **Run**. Repita com o `supabase/02-grupos.sql` (sempre na ordem dos números, cada um uma vez só).
 4. Para testar à vontade: em **Authentication → Sign In / Providers → Email**, desligue **Confirm email** (o e-mail grátis do Supabase só manda uns 2 por hora). Religue antes de abrir o site ao público.
 
 ### 4. Rode o site
@@ -118,6 +128,8 @@ npm test
 | `js/app.js` | O "maestro": guarda o estado e liga cliques → api → tela |
 | `js/conta.js` | Conversa com o Supabase: criar conta, entrar, sair, perfil e marcações |
 | `js/conta-tela.js` | O botão da conta e a janela de entrar / criar conta |
+| `js/grupos.js` | Regras dos grupos sem tela: link e mensagem de convite, número de WhatsApp |
+| `js/grupos-tela.js` | A aba "Grupos" e a janela que pede o WhatsApp |
 | `js/nuvem.js` | Junta as marcações do navegador com as da conta e leva cada mudança para lá |
 | `supabase/` | O SQL que cria as tabelas e as regras de segurança no Supabase |
 | `privacidade.html` | A política de privacidade |
