@@ -4,6 +4,7 @@ import {
   buscarProvedores,
   paginaDoCatalogo,
   paginaDaBusca,
+  buscarAteEncher,
   INICIO_CATALOGO,
   buscarOndeAssistir,
   buscarParaCarrossel,
@@ -433,6 +434,7 @@ function aoDigitar(texto) {
 // ---------------------------------------------------------------
 
 let ultimoDetalhe = 0;
+let detalheAberto = false;
 // true quando a página do filme foi aberta por um clique aqui dentro
 // (aí "Voltar" é só voltar no histórico do navegador).
 let navegouDentro = false;
@@ -468,7 +470,9 @@ function seguirRota() {
   } else {
     ultimoDetalhe++;
     fecharDetalhe();
+    if (detalheAberto && estado.aba === "grupos") atualizarGrupos();
   }
+  detalheAberto = Boolean(rota);
 }
 
 // Lê o js/config.js. Se o arquivo não existir (quem acabou de clonar o
@@ -487,6 +491,26 @@ async function lerConfig() {
 
 // A aba "Grupos" (criada quando a conta liga; null sem Supabase).
 let telaGrupos = null;
+// Espera as marcações terminarem de subir para a conta.
+let esperarNuvem = () => Promise.resolve();
+
+// Filmes bem avaliados dos streamings que ninguém do grupo viu (sorteio).
+const CANDIDATOS_DO_SORTEIO = 40;
+async function buscarCandidatosDoSorteio(vistos) {
+  const ids = idsParaBusca(new Set(), estado.provedores);
+  const { filmes } = await buscarAteEncher(paginaDoCatalogo(ids), (f) => !vistos.has(f.id), {
+    inicio: INICIO_CATALOGO,
+    minimo: CANDIDATOS_DO_SORTEIO,
+  });
+  return filmes;
+}
+
+// Voltou da página de um filme para os grupos: o filme pode ter sido
+// marcado, então os pontos são recarregados (depois de a marcação subir).
+async function atualizarGrupos() {
+  await esperarNuvem();
+  if (estado.aba === "grupos") telaGrupos?.abrir();
+}
 
 // Mostra a aba "Grupos" no lugar da grade de filmes.
 function abrirGrupos() {
@@ -555,15 +579,21 @@ async function ligarConta({ SUPABASE_URL, SUPABASE_KEY }) {
   if (!SUPABASE_URL || !SUPABASE_KEY) return semConta();
   let conta, tela, traduzirErro;
   try {
-    const [modConta, { configurarTelaConta }, { criarTelaGrupos }] = await Promise.all([
+    const [modConta, { configurarTelaConta }, { criarTelaGrupos }, { criarDisputa }] = await Promise.all([
       import("./conta.js"),
       import("./conta-tela.js"),
       import("./grupos-tela.js"),
+      import("./disputa-tela.js"),
     ]);
     traduzirErro = modConta.traduzirErro;
     conta = modConta.criarConta({ url: SUPABASE_URL, chave: SUPABASE_KEY });
     tela = configurarTelaConta(conta);
-    telaGrupos = criarTelaGrupos(conta, { abrirConta: () => tela.abrir() });
+    const disputa = criarDisputa({
+      conta,
+      buscarCandidatos: buscarCandidatosDoSorteio,
+      buscarPorTitulo: async (texto) => (await paginaDaBusca(texto)(1)).filmes,
+    });
+    telaGrupos = criarTelaGrupos(conta, { abrirConta: () => tela.abrir(), disputa });
   } catch {
     return semConta(); // a biblioteca do Supabase não carregou
   }
@@ -599,6 +629,7 @@ async function ligarConta({ SUPABASE_URL, SUPABASE_KEY }) {
     tela.abrir({ convite: `🎬 Você foi convidado ${sobre}. Crie sua conta ou entre para participar da disputa.` });
   }
   const sincronia = criarSincronia({ conta, assistidos, aoFalhar: () => avisarSemConta() });
+  esperarNuvem = sincronia.pronto;
   window.addEventListener("online", () => sincronia.tentarDeNovo());
 
   let dentro = false;

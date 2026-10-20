@@ -184,6 +184,18 @@
       </form>
     </dialog>
 
+    <!-- O campeão do mês escolhe os 3 filmes do desafio da 1ª semana. -->
+    <dialog id="janela-escolha" class="janela janela-larga" aria-label="Escolher os filmes do desafio">
+      <button class="janela-fechar" data-fechar aria-label="Fechar">×</button>
+      <h2 class="janela-titulo">🏆 Escolha 3 filmes</h2>
+      <p class="janela-texto">Quem não assistir até domingo perde 1 ponto, e você ganha 2 por pessoa.</p>
+      <div class="escolha-escolhidos"></div>
+      <input class="escolha-busca" type="search" placeholder="Buscar filme pelo título" aria-label="Buscar filme pelo título" autocomplete="off" />
+      <div class="escolha-resultados"></div>
+      <p class="form-erro" role="alert" hidden></p>
+      <button class="botao-principal escolha-confirmar" disabled>Confirmar os 3 filmes</button>
+    </dialog>
+
     <!-- Página do filme: abre por cima de tudo (endereço #/filme/ID). -->
     <div
       id="detalhe"

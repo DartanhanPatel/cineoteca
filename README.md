@@ -45,6 +45,22 @@ Com a conta aberta, aparece a aba **Grupos**.
 - **WhatsApp:** ao criar ou entrar num grupo, o site pergunta uma vez se a pessoa quer receber o desafio da semana pelo WhatsApp (os avisos começam em breve), com uma caixinha separada para ofertas. Dá para remover o número clicando no seu nome.
 - Os participantes veem os nomes uns dos outros, mas não o e-mail nem o WhatsApp.
 
+### Disputa: ranking do mês e desafio da semana
+Cada grupo mostra o **desafio da semana** e o **ranking do mês** (horário de Brasília).
+
+| O que acontece | Pontos |
+|---|---|
+| Filme marcado como "Já assisti" no mês | **+1** |
+| Filme do desafio visto na semana dele | **+3** no total (+1 e mais 2 de bônus) |
+| Filme escolhido pelo campeão que alguém não viu até domingo | **−1** para quem não viu, **+2** para o campeão |
+
+- O ranking **zera todo dia 1**. Só contam filmes vistos depois de entrar no grupo.
+- **Empate:** vence quem chegou primeiro àquela pontuação.
+- **Semanas** vão de segunda a domingo; cada uma pertence ao mês da sua segunda-feira.
+- **Desafio:** 3 filmes por semana, sorteados entre os mais bem avaliados dos streamings, sem filmes que alguém do grupo já viu. O sorteio acontece quando a primeira pessoa do grupo abre a aba Grupos na semana.
+- **Campeão:** quem terminou o mês anterior em 1º (com algum ponto) escolhe os filmes da 1ª semana do mês (a da 1ª segunda-feira), até a terça. Se não escolher, o site sorteia na quarta. O campeão não perde pontos pelos filmes que ele mesmo escolheu, e quem já tinha visto um deles antes da semana não perde nada.
+- Clique num pôster do desafio para abrir o filme e marcar "Já assisti". Ao voltar, os pontos são atualizados.
+
 ### Recomendações
 O destaque no topo é um carrossel com 4 filmes que troca a cada 5 segundos (pausa com o mouse em cima). As cores do filme em destaque se espalham pelo fundo da página.
 
@@ -83,7 +99,7 @@ Sem este passo o site funciona normalmente, só sem o botão "Entrar".
 
 1. Crie um projeto grátis em [supabase.com](https://supabase.com).
 2. Em **Settings → API Keys**, copie a chave **Publishable** (`sb_publishable_...`). Em **Data API**, copie o **Project URL**. Cole os dois no `js/config.js` (veja o `js/config.example.js`). **Nunca** use a chave `secret`/`service_role` no site.
-3. Em **SQL Editor → New query**, cole o arquivo `supabase/01-contas.sql` inteiro e clique em **Run**. Repita com o `supabase/02-grupos.sql` (sempre na ordem dos números, cada um uma vez só).
+3. Em **SQL Editor → New query**, cole o arquivo `supabase/01-contas.sql` inteiro e clique em **Run**. Repita com o `supabase/02-grupos.sql` e o `supabase/03-disputa.sql` (sempre na ordem dos números, cada um uma vez só).
 4. Para testar à vontade: em **Authentication → Sign In / Providers → Email**, desligue **Confirm email** (o e-mail grátis do Supabase só manda uns 2 por hora). Religue antes de abrir o site ao público.
 
 ### 4. Rode o site
@@ -130,6 +146,8 @@ npm test
 | `js/conta-tela.js` | O botão da conta e a janela de entrar / criar conta |
 | `js/grupos.js` | Regras dos grupos sem tela: link e mensagem de convite, número de WhatsApp |
 | `js/grupos-tela.js` | A aba "Grupos" e a janela que pede o WhatsApp |
+| `js/disputa.js` | Regras da disputa sem tela: sorteio dos filmes, datas, medalhas |
+| `js/disputa-tela.js` | O desafio da semana, o ranking do mês e a janela do campeão |
 | `js/nuvem.js` | Junta as marcações do navegador com as da conta e leva cada mudança para lá |
 | `supabase/` | O SQL que cria as tabelas e as regras de segurança no Supabase |
 | `privacidade.html` | A política de privacidade |

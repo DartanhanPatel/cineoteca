@@ -3,6 +3,6 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test tests/api.test.js tests/ui.test.js tests/assistidos.test.js tests/fila.test.js tests/nuvem.test.js tests/grupos.test.js"
+    "test": "node --test tests/api.test.js tests/ui.test.js tests/assistidos.test.js tests/fila.test.js tests/nuvem.test.js tests/grupos.test.js tests/disputa.test.js"
   }
 }

@@ -26,7 +26,8 @@ const TEMPO_COPIADO = 2000;
 const CHAVE_PERGUNTOU = "catalogo-filmes:whatsapp-perguntado:";
 
 // conta: o objeto do conta.js. abrirConta(): abre a janela de entrar.
-export function criarTelaGrupos(conta, { abrirConta }) {
+// disputa: o objeto do disputa-tela.js (ranking e desafio de cada grupo).
+export function criarTelaGrupos(conta, { abrirConta, disputa }) {
   const area = $("#grupos");
   const janelaWhatsapp = $("#janela-whatsapp");
   const formWhatsapp = $("#form-whatsapp");
@@ -164,6 +165,7 @@ export function criarTelaGrupos(conta, { abrirConta }) {
           );
         })
       ),
+      disputa.secao(grupo),
       el("div", { className: "grupo-acoes" }, whatsapp, copiar, sair)
     );
   }

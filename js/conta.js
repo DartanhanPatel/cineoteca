@@ -16,6 +16,9 @@ const ERROS = [
   [/fetch|network/i, "Sem conexão com o servidor. Confira sua internet."],
   [/convite inválido/i, "Esse convite não vale mais. Peça um link novo a quem convidou."],
   [/whatsapp_check/i, "Esse número de WhatsApp não parece válido."],
+  [/aguardando o campeão/i, "Até terça, quem escolhe os filmes desta semana é o campeão do mês passado."],
+  [/não participa/i, "Você não participa mais deste grupo."],
+  [/3 filmes/i, "Escolha 3 filmes diferentes."],
   // Tabela ou função que não existe: falta rodar um arquivo da pasta supabase/.
   [/schema cache/i, "O banco de dados ainda não foi preparado para esta parte do site (falta rodar o SQL no Supabase)."],
 ];
@@ -121,6 +124,16 @@ export function criarConta({ url, chave }) {
 
     async sairDoGrupo(idGrupo) {
       conferir(await supabase.rpc("sair_do_grupo", { id_grupo: idGrupo }));
+    },
+
+    // Ranking do mês, campeão, desafio da semana... (veja 03-disputa.sql).
+    async disputaDoGrupo(idGrupo) {
+      return conferir(await supabase.rpc("disputa_do_grupo", { id_grupo: idGrupo }));
+    },
+
+    // Grava os 3 filmes desta semana. → o desafio que ficou valendo.
+    async definirDesafio(idGrupo, filmes) {
+      return conferir(await supabase.rpc("definir_desafio", { id_grupo: idGrupo, lista_filmes: filmes }));
     },
 
     // Funciona sem conta. → { nome, membros } ou null (convite inválido).

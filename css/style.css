@@ -1484,6 +1484,232 @@ button {
   padding: 12px 24px;
 }
 
+/* ---------- Disputa (dentro de cada grupo) ---------- */
+.disputa {
+  display: grid;
+  gap: 12px;
+  justify-items: start;
+  padding-top: 16px;
+  border-top: 1px solid var(--linha);
+}
+.disputa > * {
+  justify-self: stretch;
+}
+.disputa > button {
+  justify-self: start;
+  width: auto;
+  padding: 10px 20px;
+}
+.disputa-nota {
+  margin: 0;
+  color: var(--penumbra);
+  font-size: 0.9rem;
+}
+.disputa-campeao {
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: rgb(255 194 71 / 0.12);
+  color: var(--tungstenio);
+}
+.disputa-titulo {
+  margin: 8px 0 0;
+  font-family: var(--fonte-titulo);
+  font-size: 1.4rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+.disputa-titulo span {
+  margin-left: 6px;
+  font-family: var(--fonte-texto);
+  font-size: 0.85rem;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--penumbra);
+}
+.desafio-filmes {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.desafio-filme {
+  display: grid;
+  gap: 4px;
+  align-content: start;
+  text-decoration: none;
+}
+.desafio-filme img {
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  object-fit: cover;
+  border-radius: 10px;
+  background: var(--veludo-claro);
+  transition: transform 0.15s;
+}
+.desafio-filme:hover img {
+  transform: translateY(-3px);
+}
+.desafio-filme.visto img {
+  outline: 2px solid var(--assisti);
+  outline-offset: 2px;
+}
+.desafio-filme-titulo {
+  font-size: 0.85rem;
+  font-weight: 600;
+  line-height: 1.25;
+}
+.desafio-filme-quem {
+  color: var(--penumbra);
+  font-size: 0.75rem;
+}
+.desafio-filme.visto .desafio-filme-quem {
+  color: var(--assisti);
+  font-weight: 600;
+}
+.ranking {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ranking li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: var(--veludo-claro);
+}
+.ranking li.ranking-eu {
+  box-shadow: inset 0 0 0 1px var(--tungstenio);
+}
+.ranking-posicao {
+  flex: 0 0 28px;
+  text-align: center;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--penumbra);
+}
+.ranking-quem {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+.ranking-quem strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ranking-quem small {
+  color: var(--penumbra);
+  font-size: 0.75rem;
+}
+.ranking-pontos {
+  flex: 0 0 auto;
+  font-family: var(--fonte-titulo);
+  font-size: 1.3rem;
+  font-weight: 800;
+}
+
+/* Janela em que o campeão escolhe os filmes */
+.janela-larga {
+  width: min(560px, calc(100% - 32px));
+}
+.escolha-escolhidos {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.escolha-vaga {
+  position: relative;
+  display: grid;
+  place-items: center;
+  gap: 4px;
+  min-height: 72px;
+  padding: 8px;
+  border: 1px dashed var(--linha);
+  border-radius: 10px;
+  color: var(--penumbra);
+  font-size: 0.8rem;
+  text-align: center;
+}
+.escolha-vaga.cheia {
+  border-style: solid;
+  border-color: var(--tungstenio);
+  color: var(--texto);
+}
+.escolha-vaga img {
+  width: 46px;
+  border-radius: 6px;
+}
+.escolha-tirar {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--veludo-claro);
+  color: var(--texto);
+  cursor: pointer;
+}
+.escolha-busca {
+  width: 100%;
+  padding: 11px 14px;
+  border: 1px solid var(--linha);
+  border-radius: 10px;
+  background: rgb(0 0 0 / 0.4);
+  color: var(--texto);
+  font: inherit;
+}
+.escolha-busca:focus {
+  outline: none;
+  border-color: var(--tungstenio);
+}
+.escolha-resultados {
+  display: grid;
+  gap: 4px;
+  max-height: 300px;
+  margin: 10px 0 14px;
+  overflow-y: auto;
+}
+.escolha-resultado {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: var(--texto);
+  text-align: left;
+  cursor: pointer;
+}
+.escolha-resultado:hover {
+  background: var(--veludo-claro);
+}
+.escolha-resultado img {
+  width: 38px;
+  border-radius: 5px;
+}
+.escolha-resultado span {
+  display: grid;
+  flex: 1;
+}
+.escolha-resultado small,
+.escolha-resultado em {
+  color: var(--penumbra);
+  font-size: 0.75rem;
+}
+#janela-escolha .form-erro {
+  margin-bottom: 12px;
+}
+
 /* ---------- Celular ---------- */
 @media (max-width: 760px) {
   .cabecalho {
