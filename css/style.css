@@ -1131,6 +1131,13 @@ button {
 .botao-conta:has(.botao-conta-inicial) {
   padding: 4px 14px 4px 4px;
 }
+/* Ícone de "Entrar": só no celular (no computador aparece o texto). */
+.botao-conta-icone {
+  display: none;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+}
 .botao-conta-inicial {
   display: grid;
   place-items: center;
@@ -1712,23 +1719,33 @@ button {
 
 /* ---------- Celular ---------- */
 @media (max-width: 760px) {
+  /* Logo | busca (encolhe) | conta; as abas descem para a 2ª linha. */
   .cabecalho {
-    grid-template-columns: 1fr auto auto;
+    grid-template-columns: auto minmax(0, 1fr) auto;
     column-gap: 10px;
   }
-  /* No celular, a conta mostra só a inicial. */
+  /* No celular, a conta mostra só a inicial (ou o ícone, para entrar). */
   .botao-conta-nome {
     display: none;
   }
+  .botao-conta,
   .botao-conta:has(.botao-conta-inicial) {
     padding: 4px;
+  }
+  .botao-conta-icone {
+    display: grid;
   }
   .abas {
     grid-column: 1 / -1;
     grid-row: 2;
+    /* Sem isto, a largura das abas (que rolam de lado) alarga a 1ª linha
+       e empurra o botão da conta para fora da tela. */
+    min-width: 0;
   }
   .busca {
-    width: clamp(140px, 42vw, 220px);
+    width: 100%;
+    max-width: 220px;
+    justify-self: end;
   }
   .marca-nome {
     width: 124px;

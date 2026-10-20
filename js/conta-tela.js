@@ -7,6 +7,10 @@ const $ = (seletor, dentro = document) => dentro.querySelector(seletor);
 
 const MIN_SENHA = 6;
 
+// Bonequinho do botão "Entrar" no celular.
+const ICONE_PESSOA =
+  '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>';
+
 // Primeiro nome (ou o começo do e-mail, se não houver nome).
 function primeiroNome(usuario) {
   const nome = usuario.user_metadata?.nome?.trim() || usuario.email.split("@")[0];
@@ -181,8 +185,15 @@ export function configurarTelaConta(conta) {
         botao.append(inicial, texto);
         botao.setAttribute("aria-label", `Sua conta (${nome})`);
       } else {
-        botao.textContent = "Entrar";
-        botao.removeAttribute("aria-label");
+        // No celular só o ícone aparece (o texto "Entrar" não cabe).
+        const icone = document.createElement("span");
+        icone.className = "botao-conta-icone";
+        icone.innerHTML = ICONE_PESSOA;
+        const texto = document.createElement("span");
+        texto.className = "botao-conta-nome";
+        texto.textContent = "Entrar";
+        botao.append(icone, texto);
+        botao.setAttribute("aria-label", "Entrar");
       }
     },
   };
