@@ -128,7 +128,16 @@ Depois abra o endereço que aparecer, normalmente http://localhost:3000.
 
 O site precisa de internet: os filmes vêm da TMDB, os trailers do YouTube e as fontes do Google Fonts (sem elas, o site usa as fontes do sistema).
 
-### 5. Rode os testes
+### 5. Publique na internet (Cloudflare Pages)
+
+1. Rode `npm run publicar`. Ele cria a pasta `publicar/` só com o que o site precisa (inclui o seu `js/config.js`, por isso a pasta fica fora do git).
+2. No [Cloudflare](https://dash.cloudflare.com), vá em **Workers & Pages → Create → Pages → Upload assets**, dê um nome ao projeto e arraste a pasta `publicar`.
+3. No Supabase, em **Authentication → URL Configuration**, coloque o endereço do site em **Site URL**. Depois, religue o **Confirm email** (passo 3.4).
+4. Para atualizar o site depois de uma mudança: rode `npm run publicar` de novo e, no projeto do Cloudflare, **Create deployment** com a pasta nova.
+
+Atenção: o token da TMDB vai junto e qualquer pessoa curiosa consegue vê-lo no navegador (ele só lê dados; se for abusado, gere outro). As chaves do Supabase são públicas por natureza.
+
+### 6. Rode os testes
 
 Precisa do Node 18 ou mais recente; não há nada para instalar:
 
