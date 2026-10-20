@@ -175,10 +175,11 @@ export function marcarAba(nome) {
 export function atualizarContadores({ quero, assisti, ocultos }) {
   $('.aba[data-aba="quero"] .contador').textContent = quero;
   $('.aba[data-aba="assisti"] .contador').textContent = assisti;
-  // A aba "Ocultos" só aparece quando há filmes com ✗ (ou enquanto está aberta).
+  // A aba "Ocultos" não fica na barra: só aparece enquanto está aberta
+  // (pelo endereço ?aba=ocultos).
   const abaOcultos = $('.aba[data-aba="ocultos"]');
   abaOcultos.querySelector(".contador").textContent = ocultos;
-  abaOcultos.hidden = ocultos === 0 && abaOcultos.getAttribute("aria-selected") !== "true";
+  abaOcultos.hidden = abaOcultos.getAttribute("aria-selected") !== "true";
 }
 
 // Durante a busca, os logos de filtro ficam apagados e sem clique.
@@ -462,7 +463,7 @@ function textoDeSaida(filme) {
   const avaliacao = avaliacoes.avaliacaoDe(filme.id);
   const status = avaliacoes.statusDe(filme.id);
   const aba = avaliacoes.abaAtual();
-  if (avaliacao === "nao") return `${titulo} não vai mais aparecer. Ele fica na aba Ocultos.`;
+  if (avaliacao === "nao") return `${titulo} não vai mais aparecer.`;
   if (status && status !== aba) return `${titulo} foi para ${NOME_ABA[status]}.`;
   if (aba === "ocultos") return `${titulo} voltou para o Catálogo.`;
   if (NOME_ABA[aba]) return `${titulo} saiu de ${NOME_ABA[aba]}.`;

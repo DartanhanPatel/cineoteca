@@ -19,14 +19,14 @@ No computador, passe o mouse num pôster. No celular, segure o dedo no pôster p
 | Botão | O que faz |
 |---|---|
 | **✓** (gostei) | Marca como "Já assisti" e reforça os gêneros do filme nas recomendações. |
-| **✗** (não gostei) | O filme some do site e vai para a aba "Ocultos". Dá para desfazer por 5 segundos, ou trazer de volta depois pela aba. |
+| **✗** (não gostei) | O filme some do site. Dá para desfazer por 5 segundos (ou trazer de volta depois pela aba "Ocultos", veja abaixo). |
 | **＋ Quero assistir** | Guarda o filme na aba "Quero assistir". |
 | **👁 Já assisti** | Guarda o filme na aba "Já assisti". |
 
 - Filme marcado **sai do Catálogo** e fica só na aba dele. No lugar entra um filme novo no fim da grade, então a quantidade na tela não diminui. O aviso que aparece tem um botão **Desfazer**.
 - Na **busca** e nas **abas**, o filme marcado continua aparecendo, com o ✓ visível.
 - As abas **"Quero assistir"** e **"Já assisti"** mostram seus filmes, do mais recente para o mais antigo, com os logos de onde assistir. Desmarcar um filme dentro da aba tira ele da lista na hora (com "Desfazer").
-- A aba **"Ocultos"** aparece quando há filmes com ✗. Clique no ✗ de um filme ali para trazê-lo de volta: como ✗ conta como "assisti e não gostei", ele vai para "Já assisti".
+- A aba **"Ocultos"** não aparece na barra do topo. Para ver os filmes com ✗, abra o endereço do site com `?aba=ocultos` no fim (por exemplo, `http://localhost:3000/?aba=ocultos`). Clique no ✗ de um filme ali para trazê-lo de volta: como ✗ conta como "assisti e não gostei", ele vai para "Já assisti".
 - As marcações ficam guardadas **no seu navegador**: continuam lá quando você fecha o site, mas não passam para outro computador ou navegador.
 
 ### Recomendações
@@ -133,7 +133,7 @@ npm test
 - [x] Dar ✗ num filme faz ele sumir; "Desfazer" traz de volta. Recarregando a página, ele continua oculto.
 - [x] "Quero assistir" e "Já assisti" aparecem nas abas do topo, com o número certo.
 - [ ] Na aba "Quero assistir", desmarcar "Quero assistir" num filme tira ele da lista na hora e o número da aba diminui; "Desfazer" traz de volta.
-- [ ] Depois de dar ✗ num filme, aparece a aba "Ocultos (1)"; nela, clicar no ✗ traz o filme de volta (vai para "Já assisti") e a aba some ao sair dela.
+- [ ] Depois de dar ✗ num filme, a aba "Ocultos" **não** aparece na barra; abrindo `?aba=ocultos`, ela aparece com "Ocultos (1)", clicar no ✗ traz o filme de volta (vai para "Já assisti") e a aba some ao sair dela.
 - [x] Depois de marcar todos os filmes da primeira página e recarregar, o Catálogo continua cheio (com os filmes das páginas seguintes) e o carrossel continua com 4 filmes.
 
 ### Página do filme

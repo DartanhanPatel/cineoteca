@@ -360,7 +360,7 @@ function aoTrocarAba(aba) {
   estado.aba = aba;
   marcarAba(aba);
   lembrarAba(aba);
-  atualizarContadores(assistidos.contagem()); // esconde "Ocultos" se ficou vazia
+  atualizarContadores(assistidos.contagem()); // "Ocultos" só aparece enquanto está aberta
   clearTimeout(temporizador);
   estado.termo = "";
   definirTextoBusca("");
