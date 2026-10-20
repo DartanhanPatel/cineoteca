@@ -1235,6 +1235,9 @@ button {
   background: rgb(0 0 0 / 0.4);
   color: var(--texto);
   font: inherit;
+  /* 16px: com letra menor, o iPhone dá zoom ao tocar no campo (e não volta). */
+  font-size: 1rem;
+  font-weight: 400;
 }
 .form-conta input:focus {
   outline: none;
