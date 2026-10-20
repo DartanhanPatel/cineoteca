@@ -137,6 +137,7 @@ npm test
 - [x] Depois de marcar todos os filmes da primeira página e recarregar, o Catálogo continua cheio (com os filmes das páginas seguintes) e o carrossel continua com 4 filmes.
 
 ### Página do filme
+- [ ] Abrir um filme do Catálogo, marcar "Quero assistir" na página dele e desmarcar em seguida: ao voltar, o pôster está de novo no mesmo lugar da grade, e o filme que tinha entrado no fim saiu (continuam 20).
 - [x] Clicar num pôster abre a página do filme com o trailer tocando sem som; "Ativar som" liga o áudio.
 - [x] "← Voltar", a tecla Esc e o botão voltar do navegador fecham a página do filme no mesmo ponto da lista.
 

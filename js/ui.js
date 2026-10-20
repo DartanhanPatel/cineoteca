@@ -394,6 +394,7 @@ let avaliacoes = {
   continuaNaGrade: () => true, // depois de marcado, o filme ainda pertence à grade atual?
   abaAtual: () => "catalogo", // "catalogo", "busca", "quero", "assisti" ou "ocultos"
   aoSairDaGrade: () => {}, // um card saiu da grade (o app repõe outro filme)
+  aoVoltarAGrade: () => {}, // o filme voltou à grade (o app tira quem entrou no lugar)
 };
 
 export function configurarAvaliacoes(config) {
@@ -470,12 +471,23 @@ function textoDeSaida(filme) {
   return `${titulo} foi desmarcado.`;
 }
 
+// O filme voltou a pertencer à grade (por exemplo, desmarcado na página do
+// filme depois de ter saído do Catálogo): o card escondido aparece de novo.
+function devolverAGrade(filme) {
+  for (const card of document.querySelectorAll(`.card[data-filme-id="${filme.id}"]`)) {
+    card.classList.remove("saindo");
+    card.hidden = false;
+  }
+  avaliacoes.aoVoltarAGrade(filme);
+}
+
 // Depois de um clique num botão: se o filme não pertence mais à grade
 // atual (por exemplo, foi marcado no Catálogo ou desmarcado numa aba),
-// ele sai da tela com o aviso de "Desfazer".
+// ele sai da tela com o aviso de "Desfazer". Se voltou a pertencer, volta.
 function conferirSeSai(filme, estadoAnterior) {
   atualizarMarcas(filme.id);
   if (!avaliacoes.continuaNaGrade(filme.id)) retirarDaGrade(filme, estadoAnterior, textoDeSaida(filme));
+  else devolverAGrade(filme);
 }
 
 // Aviso no rodapé da tela que some sozinho depois de 5 segundos.

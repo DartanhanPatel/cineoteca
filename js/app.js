@@ -264,6 +264,12 @@ function aoMarcarStatus(filme, tipo) {
 function aoRestaurar(filme, estadoAnterior) {
   assistidos.restaurar(filme, estadoAnterior);
   depoisDeMarcar(filme);
+  aoVoltarAGrade(filme);
+}
+
+// O filme voltou para a grade (pelo "Desfazer" ou desmarcado na página do
+// filme): o substituto dele devolve a vaga.
+function aoVoltarAGrade(filme) {
   // Numa aba que tinha ficado vazia (a mensagem apagou os cards), desenha
   // a lista de novo, já com o filme de volta.
   if (estado.aba !== "catalogo" && listaFicouVazia) {
@@ -486,6 +492,7 @@ async function iniciar() {
     continuaNaGrade,
     abaAtual: () => (estado.termo ? "busca" : estado.aba),
     aoSairDaGrade,
+    aoVoltarAGrade,
   });
   atualizarContadores(assistidos.contagem());
 
