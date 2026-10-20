@@ -61,6 +61,13 @@ Cada grupo mostra o **desafio da semana** e o **ranking do mês** (horário de B
 - **Campeão:** quem terminou o mês anterior em 1º (com algum ponto) escolhe os filmes da 1ª semana do mês (a da 1ª segunda-feira), até a terça. Se não escolher, o site sorteia na quarta. O campeão não perde pontos pelos filmes que ele mesmo escolheu, e quem já tinha visto um deles antes da semana não perde nada.
 - Clique num pôster do desafio para abrir o filme e marcar "Já assisti". Ao voltar, os pontos são atualizados.
 
+### Leads (para você, dono do site)
+O `supabase/04-leads.sql` cria a tabela `privado.leads`: só as pessoas que aceitaram receber ofertas, com nome, e-mail (de quem aceitou por e-mail), WhatsApp (de quem aceitou pelo WhatsApp), a data de cada aceite, gêneros favoritos, filmes assistidos, "Quero assistir", número de grupos, data do cadastro e último acesso.
+
+- **Ver ou baixar:** no Supabase, **SQL Editor → New query**, rode `select * from privado.leads;` e clique em **Export → Download CSV**. O CSV abre no Excel e pode ser importado em CRMs.
+- O site **não** enxerga essa tabela (ela fica fora da área "public" do Supabase).
+- Quem desmarca as ofertas sai da tabela na hora.
+
 ### Recomendações
 O destaque no topo é um carrossel com 4 filmes que troca a cada 5 segundos (pausa com o mouse em cima). As cores do filme em destaque se espalham pelo fundo da página.
 
@@ -99,7 +106,7 @@ Sem este passo o site funciona normalmente, só sem o botão "Entrar".
 
 1. Crie um projeto grátis em [supabase.com](https://supabase.com).
 2. Em **Settings → API Keys**, copie a chave **Publishable** (`sb_publishable_...`). Em **Data API**, copie o **Project URL**. Cole os dois no `js/config.js` (veja o `js/config.example.js`). **Nunca** use a chave `secret`/`service_role` no site.
-3. Em **SQL Editor → New query**, cole o arquivo `supabase/01-contas.sql` inteiro e clique em **Run**. Repita com o `supabase/02-grupos.sql` e o `supabase/03-disputa.sql` (sempre na ordem dos números, cada um uma vez só).
+3. Em **SQL Editor → New query**, cole o arquivo `supabase/01-contas.sql` inteiro e clique em **Run**. Repita com o `supabase/02-grupos.sql`, o `03-disputa.sql` e o `04-leads.sql` (sempre na ordem dos números, cada um uma vez só).
 4. Para testar à vontade: em **Authentication → Sign In / Providers → Email**, desligue **Confirm email** (o e-mail grátis do Supabase só manda uns 2 por hora). Religue antes de abrir o site ao público.
 
 ### 4. Rode o site
